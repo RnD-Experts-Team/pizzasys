@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\V1\Auth;
 
 use App\Models\User;
 use App\Models\Otp;
