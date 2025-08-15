@@ -11,18 +11,6 @@
     table { border-collapse:collapse; }
     .font-sans { font-family: Inter, Arial, Helvetica, sans-serif; }
     .font-mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; }
-    .btn {
-      background:#f59e0b;
-      color:#000000 !important;
-      text-decoration:none;
-      border-radius:12px;
-      display:inline-block;
-      padding:14px 22px;
-      font-weight:600;
-      border:1px solid #e5e7eb;
-      transition: background 0.2s ease;
-    }
-    .btn:hover { background:#d97706; }
     .badge {
       display:inline-block;
       background:#fffbeb;
@@ -48,7 +36,6 @@
       body { background:#111827 !important; }
       .card { background:#1f2937 !important; border-color:#374151 !important; }
       .muted { color:#9ca3af !important; }
-      .btn { background:#f59e0b !important; color:#000000 !important; border-color:#92400e33 !important; }
     } */
   </style>
 </head>
@@ -85,14 +72,8 @@
                     <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#6b7280; padding-bottom:8px;">
                       One-Time Code
                     </div>
-                    <div style="display:flex; align-items:center; gap:12px;">
-                      <div class="font-mono" style="font-size:24px; font-weight:700; letter-spacing:0.12em; background:#ffffff; border:1px dashed #e5e7eb; border-radius:10px; padding:10px 14px; color:#262626;">
-                        {{ $otp }}
-                      </div>
-                      <a href="#" id="copyBtn" class="btn font-sans" style="font-size:14px;">Copy Code</a>
-                    </div>
-                    <div class="muted" style="font-size:12px; padding-top:10px;">
-                      Tip: If the button doesn’t work in your email app, select the code and copy it manually.
+                    <div class="font-mono" style="font-size:24px; font-weight:700; letter-spacing:0.12em; background:#ffffff; border:1px dashed #e5e7eb; border-radius:10px; padding:10px 14px; color:#262626; display:inline-block;">
+                      {{ $otp }}
                     </div>
                   </td>
                 </tr>
@@ -119,33 +100,5 @@
       </td>
     </tr>
   </table>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const btn = document.getElementById("copyBtn");
-      if (btn) {
-        btn.addEventListener("click", function(e) {
-          e.preventDefault();
-          const otp = "{{ $otp }}";
-          navigator.clipboard?.writeText(otp).then(() => {
-            btn.textContent = "Copied!";
-            setTimeout(() => btn.textContent = "Copy Code", 2000);
-          }).catch(() => {
-            const ta = document.createElement("textarea");
-            ta.value = otp;
-            ta.setAttribute("readonly", "");
-            ta.style.position = "absolute";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-            btn.textContent = "Copied!";
-            setTimeout(() => btn.textContent = "Copy Code", 2000);
-          });
-        });
-      }
-    });
-  </script>
 </body>
 </html>
