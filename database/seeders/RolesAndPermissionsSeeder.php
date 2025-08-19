@@ -31,6 +31,12 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Authorization Rules Management Permissions
             'manage auth rules',
+
+            'manage stores',
+
+            'manage user role assignments',
+
+            'manage role hierarchy',
         ];
 
         foreach ($permissions as $permission) {

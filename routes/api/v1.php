@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\TokenVerifyController;
+use App\Http\Controllers\Api\V1\Stores\StoreController;
+use App\Http\Controllers\Api\V1\Users\UserRoleStoreController;
+use App\Http\Controllers\Api\V1\Roles\RoleHierarchyController;
 use App\Http\Controllers\Api\V1\Users\UserManagementController;
 use App\Http\Controllers\Api\V1\Roles\RoleManagementController;
 use App\Http\Controllers\Api\V1\Permissions\PermissionManagementController;
@@ -11,25 +14,16 @@ use App\Http\Controllers\Api\V1\AuthRules\AuthRuleController;
 
 /*
 |--------------------------------------------------------------------------
-| API V1 Routes
-|--------------------------------------------------------------------------
-*/
-
-/*
-|--------------------------------------------------------------------------
 | Public Routes (No Authentication Required)
 |--------------------------------------------------------------------------
 */
 Route::prefix('auth')->group(function () {
-    // User Authentication
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
     Route::post('/resend-verification-otp', [AuthController::class, 'resendVerificationOtp']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    
-    // Service-to-Service Authentication
     Route::post('/token-verify', [TokenVerifyController::class, 'handle']);
 });
 
@@ -133,5 +127,49 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/services', [AuthRuleController::class, 'getServices']);
         Route::post('/test', [AuthRuleController::class, 'testRule']);
         Route::post('/{authRule}/toggle-status', [AuthRuleController::class, 'toggleStatus']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store Management Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:manage stores')->prefix('stores')->group(function () {
+        Route::get('/', [StoreController::class, 'index']);
+        Route::post('/', [StoreController::class, 'store']);
+        Route::get('/{store}', [StoreController::class, 'show']);
+        Route::put('/{store}', [StoreController::class, 'update']);
+        Route::delete('/{store}', [StoreController::class, 'destroy']);
+        
+        Route::get('/{store}/users', [StoreController::class, 'getUsers']);
+        Route::get('/{store}/roles', [StoreController::class, 'getRoles']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Role Store Assignment Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:manage user role assignments')->prefix('user-role-store')->group(function () {
+        Route::post('/assign', [UserRoleStoreController::class, 'assign']);
+        Route::post('/remove', [UserRoleStoreController::class, 'remove']);
+        Route::post('/toggle', [UserRoleStoreController::class, 'toggle']);
+        Route::post('/bulk-assign', [UserRoleStoreController::class, 'bulkAssign']);
+        
+        Route::get('/user-assignments', [UserRoleStoreController::class, 'getUserAssignments']);
+        Route::get('/store-assignments', [UserRoleStoreController::class, 'getStoreAssignments']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role Hierarchy Management Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:manage role hierarchy')->prefix('role-hierarchy')->group(function () {
+        Route::post('/', [RoleHierarchyController::class, 'store']);
+        Route::post('/remove', [RoleHierarchyController::class, 'remove']);
+        Route::get('/store', [RoleHierarchyController::class, 'getStoreHierarchy']);
+        Route::get('/tree', [RoleHierarchyController::class, 'getHierarchyTree']);
+        Route::post('/validate', [RoleHierarchyController::class, 'validateHierarchy']);
     });
 });

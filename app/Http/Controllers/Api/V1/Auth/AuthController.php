@@ -179,12 +179,16 @@ class AuthController extends Controller
     }
 
     public function me(Request $request): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $request->user()
-            ]
-        ]);
-    }
+{
+    $user = $request->user();
+    $userData = $this->getUserCompleteData($user);
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'user' => $userData
+        ]
+    ]);
+}
+
 }

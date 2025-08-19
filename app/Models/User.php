@@ -63,4 +63,103 @@ public function getAllPermissions()
 {
     return $this->getPermissionsViaRoles()->merge($this->permissions);
 }
+
+public function storeRoles()
+    {
+        return $this->belongsToMany(Role::class, 'user_role_store')
+                    ->withPivot('store_id', 'metadata', 'is_active')
+                    ->withTimestamps();
+    }
+
+    public function stores()
+    {
+        return $this->belongsToMany(Store::class, 'user_role_store')
+                    ->withPivot('role_id', 'metadata', 'is_active')
+                    ->withTimestamps();
+    }
+
+    public function getRolesForStore(string $storeId)
+    {
+        return $this->storeRoles()
+                    ->wherePivot('store_id', $storeId)
+                    ->wherePivot('is_active', true)
+                    ->get();
+    }
+
+    public function getStoresForRole(Role $role)
+    {
+        return $this->stores()
+                    ->wherePivot('role_id', $role->id)
+                    ->wherePivot('is_active', true)
+                    ->get();
+    }
+
+    public function getEffectiveRolesForStore(string $storeId)
+    {
+        $directRoles = $this->getRolesForStore($storeId);
+        $allRoles = collect($directRoles->all());
+        
+        foreach ($directRoles as $role) {
+            $inheritedRoles = $role->getAllLowerRolesForStore($storeId);
+            $allRoles = $allRoles->merge($inheritedRoles);
+        }
+        
+        return $allRoles->unique('id');
+    }
+
+    public function getEffectivePermissionsForStore(string $storeId)
+    {
+        $allRoles = $this->getEffectiveRolesForStore($storeId);
+        $allPermissions = collect();
+        
+        foreach ($allRoles as $role) {
+            $allPermissions = $allPermissions->merge($role->permissions);
+        }
+        
+        return $allPermissions->unique('id');
+    }
+
+    public function canActOnUserInStore(User $targetUser, string $storeId): bool
+    {
+        $myRoles = $this->getEffectiveRolesForStore($storeId);
+        $targetRoles = $targetUser->getEffectiveRolesForStore($storeId);
+        
+        foreach ($myRoles as $myRole) {
+            foreach ($targetRoles as $targetRole) {
+                if ($myRole->isHigherThan($targetRole, $storeId)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    public function hasPermissionInStore(string $permission, string $storeId): bool
+    {
+        return $this->getEffectivePermissionsForStore($storeId)->contains('name', $permission);
+    }
+
+    public function userStoreSessions()
+    {
+        return $this->hasMany(UserStoreSession::class);
+    }
+
+    public function getCurrentStoreSession()
+    {
+        return $this->userStoreSessions()
+                    ->where('expires_at', '>', now())
+                    ->latest()
+                    ->first();
+    }
+
+     public function roleTenancies()
+    {
+        return $this->belongsToMany(Role::class, 'user_role_store')
+            ->withPivot('store_id', 'metadata', 'is_active')
+            ->withTimestamps();
+    }
+
+
+
 }
