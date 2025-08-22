@@ -111,8 +111,8 @@ class RoleHierarchyController extends Controller
         );
 
         return response()->json([
-            'success' => empty($errors),
-            'valid' => empty($errors),
+            'success' => !empty($errors),
+            'valid' => !empty($errors),
             'errors' => $errors
         ]);
     }
