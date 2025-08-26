@@ -7,6 +7,7 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use App\Models\UserRoleStore;
 
 class UserManagementService
 {
@@ -27,18 +28,18 @@ class UserManagementService
             });
         }
 
-        // ✅ FIXED - Load relationships correctly
+        // ✅ FIXED - Simple eager loading without nested .role
         $users = $query->with([
             'roles.permissions', 
-            'permissions',
-            'roleTenancies.role.permissions', // Now this works because role() exists in pivot
-            'roleTenancies.store'
+            'permissions'
         ])->paginate($perPage);
 
-        // Transform to clean structure
+        // Transform to your exact structure
         $users->getCollection()->transform(function ($user) {
-            // Clean structure: roles + permissions + stores
-            $transformed = [
+            // Get store data separately to avoid the relationship error
+            $storeData = $this->getUserStores($user->id);
+
+            return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -46,7 +47,7 @@ class UserManagementService
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
                 
-                // Roles with their permissions
+                // 1. Roles with their permissions
                 'roles' => $user->roles->map(function($role) {
                     return [
                         'id' => $role->id,
@@ -60,7 +61,7 @@ class UserManagementService
                     ];
                 }),
                 
-                // Direct permissions
+                // 2. Direct permissions
                 'permissions' => $user->permissions->map(function($permission) {
                     return [
                         'id' => $permission->id,
@@ -68,27 +69,32 @@ class UserManagementService
                     ];
                 }),
                 
-                // Stores with roles in each store
-                'stores' => $this->transformUserStores($user)
+                // 3. Stores with roles in each store
+                'stores' => $storeData
             ];
-
-            return (object) $transformed;
         });
 
         return $users;
     }
 
-    private function transformUserStores($user)
+    private function getUserStores($userId)
     {
-        $storeGroups = $user->roleTenancies->groupBy('store_id');
+        // Get user store assignments with roles and stores
+        $assignments = UserRoleStore::where('user_id', $userId)
+            ->where('is_active', true)
+            ->with(['role.permissions', 'store'])
+            ->get();
+
+        // Group by store
+        $storeGroups = $assignments->groupBy('store_id');
         $stores = [];
 
-        foreach ($storeGroups as $storeId => $assignments) {
-            $store = $assignments->first()->store;
-            $storeRoles = [];
+        foreach ($storeGroups as $storeId => $storeAssignments) {
+            $store = $storeAssignments->first()->store;
+            $roles = [];
 
-            foreach ($assignments as $assignment) {
-                $storeRoles[] = [
+            foreach ($storeAssignments as $assignment) {
+                $roles[] = [
                     'id' => $assignment->role->id,
                     'name' => $assignment->role->name,
                     'permissions' => $assignment->role->permissions->map(function($permission) {
@@ -105,27 +111,50 @@ class UserManagementService
                     'id' => $store->id,
                     'name' => $store->name
                 ],
-                'roles' => $storeRoles
+                'roles' => $roles
             ];
         }
 
         return $stores;
     }
 
-    public function getUserWithCompleteData(User $user): User
+    public function getUserWithCompleteData(User $user): array
     {
-        $user = $user->load([
-            'roles.permissions',
-            'permissions',
-            'roleTenancies.role.permissions',
-            'roleTenancies.store'
-        ]);
-
-        // Add the same clean structure
-        $user->role_permissions = $user->getRolePermissions();
-        $user->stores_with_roles = $this->transformUserStores($user);
-
-        return $user;
+        $user = $user->load(['roles.permissions', 'permissions']);
+        
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'email_verified_at' => $user->email_verified_at,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+            
+            // 1. Roles with permissions
+            'roles' => $user->roles->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'permissions' => $role->permissions->map(function($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'name' => $permission->name
+                        ];
+                    })
+                ];
+            }),
+            
+            // 2. Direct permissions
+            'permissions' => $user->permissions->map(function($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name
+                ];
+            }),
+            
+            // 3. Stores with roles
+            'stores' => $this->getUserStores($user->id)
+        ];
     }
     public function createUser(array $data): User
     {

@@ -52,12 +52,12 @@ class UserManagementController extends Controller
     }
 
     public function show(User $user): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data' => ['user' => $this->userManagementService->getUserWithCompleteData($user)]
-        ]);
-    }
+{
+    return response()->json([
+        'success' => true,
+        'data' => ['user' => $this->userManagementService->getUserWithCompleteData($user)]
+    ]);
+}
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
