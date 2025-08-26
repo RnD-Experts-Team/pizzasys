@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Store;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -54,6 +55,65 @@ class User extends Authenticatable
     {
         return $this->load(['roles', 'permissions', 'roles.permissions']);
     }
+
+    public function getWithRolesPermissionsAndStores(): User
+    {
+        return $this->load([
+            'roles', 
+            'permissions', 
+            'roles.permissions',
+            'roleTenancies.role',
+            'roleTenancies.store'
+        ]);
+    }
+
+    /**
+     * Get role permissions (not direct permissions)
+     */
+    public function getRolePermissions()
+    {
+        $rolePermissions = collect();
+        foreach ($this->roles as $role) {
+            $rolePermissions = $rolePermissions->merge($role->permissions);
+        }
+        return $rolePermissions->unique('id')->values();
+    }
+
+    /**
+     * Get stores with associated roles
+     */
+    public function getStoresWithRoles()
+    {
+        $storeRolesMap = [];
+        
+        foreach ($this->roleTenancies as $assignment) {
+            $storeId = $assignment->store->id;
+            
+            if (!isset($storeRolesMap[$storeId])) {
+                $storeRolesMap[$storeId] = [
+                    'store' => [
+                        'id' => $assignment->store->id,
+                        'name' => $assignment->store->name,
+                        'metadata' => $assignment->store->metadata,
+                        'is_active' => $assignment->store->is_active
+                    ],
+                    'roles' => []
+                ];
+            }
+            
+            $storeRolesMap[$storeId]['roles'][] = [
+                'id' => $assignment->role->id,
+                'name' => $assignment->role->name,
+                'guard_name' => $assignment->role->guard_name,
+                'assignment_metadata' => $assignment->metadata,
+                'is_active' => $assignment->is_active,
+                'assigned_at' => $assignment->created_at
+            ];
+        }
+        
+        return array_values($storeRolesMap);
+    }
+
     public function getRoleNames()
 {
     return $this->roles->pluck('name');

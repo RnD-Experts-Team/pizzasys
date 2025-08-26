@@ -12,7 +12,7 @@ class UserManagementService
 {
     public function getAllUsers($perPage = 15, $search = null, $role = null)
     {
-        $query = User::with(['roles', 'permissions']);
+        $query = User::query();
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -22,12 +22,49 @@ class UserManagementService
         }
 
         if ($role) {
-            $query->role($role);
+            $query->whereHas('roles', function($q) use ($role) {
+                $q->where('id', $role)->orWhere('name', $role);
+            });
         }
 
-        return $query->paginate($perPage);
-    }
+        // Load all necessary relationships
+        $users = $query->with([
+            'roles.permissions', 
+            'permissions',
+            'roleTenancies.role',
+            'roleTenancies.store'
+        ])->paginate($perPage);
 
+        // Transform users to include role permissions and stores with roles
+        $users->getCollection()->transform(function ($user) {
+            // Get permissions from roles (not direct permissions)
+            $rolePermissions = collect();
+            foreach ($user->roles as $role) {
+                $rolePermissions = $rolePermissions->merge($role->permissions);
+            }
+            $user->role_permissions = $rolePermissions->unique('id')->values();
+
+            // Get stores with their associated roles
+            $user->stores_with_roles = $user->getStoresWithRoles();
+
+            // Clean up relationships to avoid over-exposure
+            unset($user->roleTenancies);
+
+            return $user;
+        });
+
+        return $users;
+    }
+public function getUserWithCompleteData(User $user): User
+    {
+        $user = $user->getWithRolesPermissionsAndStores();
+        
+        // Add computed properties
+        $user->role_permissions = $user->getRolePermissions();
+        $user->stores_with_roles = $user->getStoresWithRoles();
+        
+        return $user;
+    }
     public function createUser(array $data): User
     {
         $user = User::create([

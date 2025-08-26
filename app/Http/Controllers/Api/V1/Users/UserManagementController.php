@@ -55,7 +55,7 @@ class UserManagementController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => ['user' => $user->getWithRolesAndPermissions()]
+            'data' => ['user' => $this->userManagementService->getUserWithCompleteData($user)]
         ]);
     }
 
