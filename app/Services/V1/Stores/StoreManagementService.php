@@ -34,7 +34,7 @@ class StoreManagementService
 
     public function updateStore(Store $store, array $data): Store
     {
-        $store->update(array_filter($data));
+        $store->update($data);
         return $store->fresh();
     }
 
