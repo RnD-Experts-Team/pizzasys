@@ -52,7 +52,7 @@ class UserRoleStoreService
             $query->where('store_id', $storeId);
         }
 
-        return $query->where('is_active', true)->get();
+        return $query->get();
     }
 
     public function getStoreRoleAssignments(string $storeId, int $roleId = null)
@@ -64,7 +64,7 @@ class UserRoleStoreService
             $query->where('role_id', $roleId);
         }
 
-        return $query->where('is_active', true)->get();
+        return $query->get();
     }
 
     public function bulkAssignUserRoleStore(int $userId, array $assignments): array
