@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Roles;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Services\V1\Roles\RoleHierarchyService;
 
 class CreateRoleHierarchyRequest extends FormRequest
 {
@@ -25,18 +26,17 @@ class CreateRoleHierarchyRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if ($this->higher_role_id === $this->lower_role_id) {
-                $validator->errors()->add('lower_role_id', 'A role cannot manage itself.');
-            }
+            // Use the comprehensive validation from the service
+            $hierarchyService = app(RoleHierarchyService::class);
             
-            // Check for circular hierarchy
-            $existing = \App\Models\RoleHierarchy::where('higher_role_id', $this->lower_role_id)
-                ->where('lower_role_id', $this->higher_role_id)
-                ->where('store_id', $this->store_id)
-                ->exists();
-                
-            if ($existing) {
-                $validator->errors()->add('hierarchy', 'This would create a circular hierarchy.');
+            $errors = $hierarchyService->validateHierarchy(
+                $this->higher_role_id,
+                $this->lower_role_id,
+                $this->store_id
+            );
+
+            foreach ($errors as $error) {
+                $validator->errors()->add('hierarchy', $error);
             }
         });
     }
