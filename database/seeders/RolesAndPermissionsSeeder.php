@@ -54,7 +54,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['email' => 'adlermorgan12@gmail.com'],
             [
                 'name' => 'Adler Morgan',
-                'password' => Hash::make('AdlerMorganNVT123!!'),
+                'password' => Hash::make('password123'),
                 'email_verified_at' => now(), // Already verified
             ]
         );
@@ -64,7 +64,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $this->command->info('Super admin seeded successfully:');
         $this->command->info('Email: adlermorgan12@gmail.com');
-        $this->command->info('Password: AdlerMorganNVT123!!');
+        $this->command->info('Password: password123');
         $this->command->info('Role: super-admin');
         $this->command->info('All permissions granted.');
     }
