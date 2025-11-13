@@ -37,7 +37,12 @@ class AuthService
             throw new \Exception('Invalid credentials');
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $tokenResult = $user->createToken('auth-token');
+        $token = $tokenResult->plainTextToken;
+
+        // Set expiration to 3 days
+        $tokenResult->accessToken->expires_at = now()->addDays(3);
+        $tokenResult->accessToken->save();
 
         $userData = $this->getUserCompleteData($user);
 
@@ -110,7 +115,12 @@ class AuthService
         $user->tokens()->delete();
         
         // Create new token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $tokenResult = $user->createToken('auth-token');
+        $token = $tokenResult->plainTextToken;
+
+        // Set expiration to 3 days
+        $tokenResult->accessToken->expires_at = now()->addDays(3);
+        $tokenResult->accessToken->save();
 
         return [
             'token' => $token,
