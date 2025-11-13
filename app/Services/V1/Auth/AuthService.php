@@ -37,10 +37,6 @@ class AuthService
             throw new \Exception('Invalid credentials');
         }
 
-        if (!$user->email_verified_at) {
-            throw new \Exception('Please verify your email first');
-        }
-
         $token = $user->createToken('auth-token')->plainTextToken;
 
         $userData = $this->getUserCompleteData($user);

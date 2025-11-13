@@ -18,10 +18,7 @@ use App\Http\Controllers\Api\V1\AuthRules\AuthRuleController;
 |--------------------------------------------------------------------------
 */
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
-    Route::post('/resend-verification-otp', [AuthController::class, 'resendVerificationOtp']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/token-verify', [TokenVerifyController::class, 'handle']);
