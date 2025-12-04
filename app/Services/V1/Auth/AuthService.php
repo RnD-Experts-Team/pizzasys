@@ -13,46 +13,91 @@ use App\Models\UserRoleStore;
 
 class AuthService
 {
-    public function register(array $data): array
-    {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+    // public function register(array $data): array
+    // {
+    //     $user = User::create([
+    //         'name' => $data['name'],
+    //         'email' => $data['email'],
+    //         'password' => Hash::make($data['password']),
+    //     ]);
 
-        $this->sendOtp($user->email, 'verification');
+    //     $this->sendOtp($user->email, 'verification');
 
-        return [
-            'user' => $user,
-            'message' => 'User registered successfully. Please verify your email with the OTP sent.'
-        ];
+    //     return [
+    //         'user' => $user,
+    //         'message' => 'User registered successfully. Please verify your email with the OTP sent.'
+    //     ];
+    // }
+
+    public function login(
+    string $email,
+    string $password,
+    ?array $device = null,
+    ?string $fcmToken = null,
+    string $clientType = 'web'
+): array
+{
+    $user = User::where('email', $email)->first();
+
+    if (!$user || !Hash::check($password, $user->password)) {
+        throw new \Exception('Invalid credentials');
     }
 
-    public function login(string $email, string $password): array
-    {
-        $user = User::where('email', $email)->first();
+    $tokenResult = $user->createToken('auth-token');
+    $token = $tokenResult->plainTextToken;
 
-        if (!$user || !Hash::check($password, $user->password)) {
-            throw new \Exception('Invalid credentials');
-        }
-
-        $tokenResult = $user->createToken('auth-token');
-        $token = $tokenResult->plainTextToken;
-
-        // Set expiration to 3 days
-        $tokenResult->accessToken->expires_at = now()->addDays(3);
-        $tokenResult->accessToken->save();
-
-        $userData = $this->getUserCompleteData($user);
-
-        return [
-            'user' => $userData,
-            'token' => $token,
-            'token_type' => 'Bearer'
-        ];
+    // Save device only if mobile OR if payload exists
+    if ($clientType === 'mobile' || $device || $fcmToken) {
+        $this->upsertUserDevice($user, $device, $fcmToken);
     }
 
+    $userData = $this->getUserCompleteData($user);
+
+    return [
+        'user' => $userData,
+        'token' => $token,
+        'token_type' => 'Bearer',
+    ];
+}
+protected function upsertUserDevice(User $user, ?array $device, ?string $fcmToken): void
+{
+    $deviceId = data_get($device, 'device_id');
+
+    $query = $user->devices();
+
+    // Prefer device_id if sent
+    if ($deviceId) {
+        $query->where('device_id', $deviceId);
+    } else {
+        // fallback match: platform + model
+        $query->where('platform', data_get($device, 'platform'))
+              ->where('model', data_get($device, 'model'));
+    }
+
+    $payload = [
+        'device_id'   => $deviceId,
+        'platform'    => data_get($device, 'platform'),
+        'model'       => data_get($device, 'model'),
+        'os_version'  => data_get($device, 'os_version'),
+        'app_version' => data_get($device, 'app_version'),
+        'last_seen_at'=> now(),
+    ];
+
+    if ($fcmToken) {
+        $payload['fcm_token'] = $fcmToken;
+    }
+
+    // don't overwrite with nulls
+    $payload = array_filter($payload, fn($v) => !is_null($v));
+
+    $existing = $query->first();
+
+    if ($existing) {
+        $existing->update($payload);
+    } else {
+        $user->devices()->create($payload);
+    }
+}
     public function sendOtp(string $email, string $type): void
     {
         // Delete existing unused OTPs

@@ -19,47 +19,50 @@ class AuthController extends Controller
         private AuthService $authService
     ) {}
 
-    public function register(RegisterRequest $request): JsonResponse
-    {
-        try {
-            $result = $this->authService->register($request->validated());
+    // public function register(RegisterRequest $request): JsonResponse
+    // {
+    //     try {
+    //         $result = $this->authService->register($request->validated());
             
-            return response()->json([
-                'success' => true,
-                'message' => $result['message'],
-                'data' => [
-                    'user' => $result['user']
-                ]
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed',
-                'error' => $e->getMessage()
-            ], 400);
-        }
-    }
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => $result['message'],
+    //             'data' => [
+    //                 'user' => $result['user']
+    //             ]
+    //         ], 201);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Registration failed',
+    //             'error' => $e->getMessage()
+    //         ], 400);
+    //     }
+    // }
 
     public function login(LoginRequest $request): JsonResponse
-    {
-        try {
-            $result = $this->authService->login(
-                $request->email,
-                $request->password
-            );
+{
+    try {
+        $result = $this->authService->login(
+            $request->email,
+            $request->password,
+            $request->input('device'),
+            $request->input('fcm_token'),
+            $request->input('client_type', 'web'),
+        );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => $result
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 401);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 401);
     }
+}
 
     public function verifyEmail(VerifyOtpRequest $request): JsonResponse
     {

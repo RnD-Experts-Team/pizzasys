@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Store;
+use App\Models\UserDevice;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -220,6 +222,8 @@ public function storeRoles()
             ->withTimestamps();
     }
 
-
-
+    public function devices()
+{
+    return $this->hasMany(UserDevice::class);
+}
 }
