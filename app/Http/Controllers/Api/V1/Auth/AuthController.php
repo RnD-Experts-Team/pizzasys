@@ -194,4 +194,29 @@ class AuthController extends Controller
     ]);
 }
 
+public function verifyResetOtp(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'otp'   => 'required|string',
+        ]);
+
+        $isValid = $this->authService->checkOtp(
+            $data['email'],
+            $data['otp'],
+            'password_reset'
+        );
+
+        if (! $isValid) {
+            return response()->json([
+                'message' => 'Invalid or expired OTP.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP is valid. You can now reset your password.',
+        ]);
+    }
+
 }

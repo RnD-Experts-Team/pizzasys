@@ -154,6 +154,22 @@ protected function upsertUserDevice(User $user, ?array $device, ?string $fcmToke
         return true;
     }
 
+    public function checkOtp(string $email, string $otp, string $type): bool
+{
+    $otpRecord = Otp::where('email', $email)
+        ->where('otp', $otp)
+        ->where('type', $type)
+        ->where('used', false)
+        ->first();
+
+    if (!$otpRecord || $otpRecord->isExpired()) {
+        return false;
+    }
+
+    // NOTE: We are NOT marking it as used here.
+    return true;
+}
+
     public function refreshToken(User $user): array
     {
         // Revoke current tokens
