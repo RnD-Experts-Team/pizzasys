@@ -17,7 +17,7 @@ class UserRoleStoreController extends Controller
     public function assign(AssignUserRoleStoreRequest $request): JsonResponse
     {
         try {
-            $assignment = $this->userRoleStoreService->assignUserRoleStore($request->validated());
+            $assignment = $this->userRoleStoreService->assignUserRoleStore($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -45,7 +45,8 @@ class UserRoleStoreController extends Controller
             $removed = $this->userRoleStoreService->removeUserRoleStore(
                 $request->user_id,
                 $request->role_id,
-                $request->store_id
+                $request->store_id,
+                $request
             );
 
             if ($removed) {
@@ -80,7 +81,8 @@ class UserRoleStoreController extends Controller
             $toggled = $this->userRoleStoreService->toggleUserRoleStore(
                 $request->user_id,
                 $request->role_id,
-                $request->store_id
+                $request->store_id,
+                $request
             );
 
             if ($toggled) {
@@ -153,7 +155,8 @@ class UserRoleStoreController extends Controller
         try {
             $results = $this->userRoleStoreService->bulkAssignUserRoleStore(
                 $request->user_id,
-                $request->assignments
+                $request->assignments,
+                $request
             );
 
             return response()->json([

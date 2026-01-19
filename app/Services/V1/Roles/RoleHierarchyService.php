@@ -6,37 +6,104 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\RoleHierarchy;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+
+use App\Services\AuthEvents\AuthEventFactory;
+use App\Services\AuthEvents\AuthOutboxService;
+use App\Jobs\PublishAuthOutboxEventJob;
 
 class RoleHierarchyService
 {
-    public function createHierarchy(array $data): RoleHierarchy
+    /**
+     * Record event to outbox and dispatch publish job AFTER COMMIT.
+     */
+    private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
-        // Validate hierarchy before creation
-        $errors = $this->validateHierarchy(
-            $data['higher_role_id'],
-            $data['lower_role_id'],
-            $data['store_id']
-        );
+        $factory = app(AuthEventFactory::class);
+        $outbox  = app(AuthOutboxService::class);
 
-        if (!empty($errors)) {
-            throw new \Exception('Invalid hierarchy: ' . implode(', ', $errors));
-        }
+        $envelope = $factory->make($subject, $data, $request);
+        $row = $outbox->record($subject, $envelope);
 
-        return RoleHierarchy::create([
-            'higher_role_id' => $data['higher_role_id'],
-            'lower_role_id' => $data['lower_role_id'],
-            'store_id' => $data['store_id'],
-            'metadata' => $data['metadata'] ?? null,
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
     }
 
-    public function removeHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId): bool
+    /**
+     * Event: auth.v1.assignment.role_hierarchy.created
+     */
+    public function createHierarchy(array $data, ?Request $request = null): RoleHierarchy
     {
-        return RoleHierarchy::where('higher_role_id', $higherRoleId)
-            ->where('lower_role_id', $lowerRoleId)
-            ->where('store_id', $storeId)
-            ->delete();
+        return DB::transaction(function () use ($data, $request) {
+
+            // Validate hierarchy before creation
+            $errors = $this->validateHierarchy(
+                $data['higher_role_id'],
+                $data['lower_role_id'],
+                $data['store_id']
+            );
+
+            if (!empty($errors)) {
+                throw new \Exception('Invalid hierarchy: ' . implode(', ', $errors));
+            }
+
+            $hierarchy = RoleHierarchy::create([
+                'higher_role_id' => $data['higher_role_id'],
+                'lower_role_id' => $data['lower_role_id'],
+                'store_id' => $data['store_id'],
+                'metadata' => $data['metadata'] ?? null,
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+
+            $this->recordEvent('auth.v1.assignment.role_hierarchy.created', [
+                'hierarchy' => [
+                    'id' => $hierarchy->id,
+                    'store_id' => $hierarchy->store_id,
+                    'higher_role_id' => (int) $hierarchy->higher_role_id,
+                    'lower_role_id' => (int) $hierarchy->lower_role_id,
+                    'is_active' => (bool) $hierarchy->is_active,
+                    'metadata' => $hierarchy->metadata,
+                    'created_at' => optional($hierarchy->created_at)?->toIso8601String(),
+                    'updated_at' => optional($hierarchy->updated_at)?->toIso8601String(),
+                ],
+            ], $request);
+
+            return $hierarchy;
+        });
+    }
+
+    /**
+     * Event: auth.v1.assignment.role_hierarchy.removed
+     *
+     * Note: we only publish if a row was actually deleted.
+     */
+    public function removeHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId, ?Request $request = null): bool
+    {
+        return DB::transaction(function () use ($higherRoleId, $lowerRoleId, $storeId, $request) {
+
+            // optional: capture hierarchy id before delete (for traceability)
+            $row = RoleHierarchy::where('higher_role_id', $higherRoleId)
+                ->where('lower_role_id', $lowerRoleId)
+                ->where('store_id', $storeId)
+                ->first();
+
+            $deleted = RoleHierarchy::where('higher_role_id', $higherRoleId)
+                ->where('lower_role_id', $lowerRoleId)
+                ->where('store_id', $storeId)
+                ->delete();
+
+            if ($deleted) {
+                $this->recordEvent('auth.v1.assignment.role_hierarchy.removed', [
+                    'store_id' => $storeId,
+                    'higher_role_id' => $higherRoleId,
+                    'lower_role_id' => $lowerRoleId,
+                    'hierarchy_id' => $row?->id,
+                    'removed_at' => now()->utc()->toIso8601String(),
+                ], $request);
+            }
+
+            return (bool) $deleted;
+        });
     }
 
     public function getStoreHierarchy(string $storeId)
@@ -85,7 +152,6 @@ class RoleHierarchyService
             }
         }
 
-        // Remove role from processed after processing its children
         array_pop($processed);
 
         return [
@@ -99,7 +165,6 @@ class RoleHierarchyService
     {
         $errors = [];
 
-        // Check if roles exist
         if (!Role::find($higherRoleId)) {
             $errors[] = 'Higher role does not exist';
         }
@@ -107,17 +172,14 @@ class RoleHierarchyService
             $errors[] = 'Lower role does not exist';
         }
 
-        // Check if store exists
         if (!Store::find($storeId)) {
             $errors[] = 'Store does not exist';
         }
 
-        // Check for self-reference
         if ($higherRoleId === $lowerRoleId) {
             $errors[] = 'A role cannot manage itself';
         }
 
-        // Check for existing hierarchy
         $existing = RoleHierarchy::where('higher_role_id', $higherRoleId)
             ->where('lower_role_id', $lowerRoleId)
             ->where('store_id', $storeId)
@@ -127,7 +189,6 @@ class RoleHierarchyService
             $errors[] = 'This hierarchy relationship already exists';
         }
 
-        // Check for circular hierarchy using comprehensive detection
         if ($this->wouldCreateCircularHierarchy($higherRoleId, $lowerRoleId, $storeId)) {
             $errors[] = 'This would create a circular hierarchy';
         }
@@ -135,43 +196,32 @@ class RoleHierarchyService
         return $errors;
     }
 
-    /**
-     * Comprehensive circular hierarchy detection using graph traversal
-     */
     private function wouldCreateCircularHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId): bool
     {
-        // Get all existing hierarchies for the store
         $hierarchies = RoleHierarchy::where('store_id', $storeId)
             ->where('is_active', true)
             ->get(['higher_role_id', 'lower_role_id']);
 
-        // Create a temporary hierarchy to test
         $testHierarchy = collect([
             ['higher_role_id' => $higherRoleId, 'lower_role_id' => $lowerRoleId]
         ]);
 
-        // Combine existing and test hierarchy
         $allHierarchies = $hierarchies->concat($testHierarchy);
 
-        // Build adjacency list (role_id => [subordinate_role_ids])
         $adjacencyList = [];
         foreach ($allHierarchies as $hierarchy) {
             $higher = $hierarchy['higher_role_id'];
             $lower = $hierarchy['lower_role_id'];
-            
+
             if (!isset($adjacencyList[$higher])) {
                 $adjacencyList[$higher] = [];
             }
             $adjacencyList[$higher][] = $lower;
         }
 
-        // Check for cycles using DFS from each node
         return $this->hasCycleInGraph($adjacencyList);
     }
 
-    /**
-     * Detect cycles in directed graph using DFS
-     */
     private function hasCycleInGraph(array $adjacencyList): bool
     {
         $visited = [];
@@ -188,9 +238,6 @@ class RoleHierarchyService
         return false;
     }
 
-    /**
-     * DFS helper to detect cycles
-     */
     private function hasCycleDFS(int $node, array $adjacencyList, array &$visited, array &$recursionStack): bool
     {
         $visited[$node] = true;
@@ -203,7 +250,7 @@ class RoleHierarchyService
                         return true;
                     }
                 } elseif (isset($recursionStack[$neighbor]) && $recursionStack[$neighbor]) {
-                    return true; // Cycle detected
+                    return true;
                 }
             }
         }
@@ -212,9 +259,6 @@ class RoleHierarchyService
         return false;
     }
 
-    /**
-     * Get all roles that would be affected if this hierarchy is created
-     */
     public function getAffectedRoles(int $higherRoleId, int $lowerRoleId, string $storeId): array
     {
         $hierarchies = RoleHierarchy::where('store_id', $storeId)
@@ -223,11 +267,9 @@ class RoleHierarchyService
 
         $affected = collect([$higherRoleId, $lowerRoleId]);
 
-        // Add all subordinates of the lower role
         $subordinates = $this->getAllSubordinates($lowerRoleId, $hierarchies);
         $affected = $affected->merge($subordinates);
 
-        // Add all superiors of the higher role
         $superiors = $this->getAllSuperiors($higherRoleId, $hierarchies);
         $affected = $affected->merge($superiors);
 

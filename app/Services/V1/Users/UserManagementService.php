@@ -3,11 +3,15 @@
 namespace App\Services\V1\Users;
 
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use App\Models\UserRoleStore;
+
+use App\Services\AuthEvents\AuthEventFactory;
+use App\Services\AuthEvents\AuthOutboxService;
+use App\Services\AuthEvents\ModelChangeSet;
+use App\Jobs\PublishAuthOutboxEventJob;
 
 class UserManagementService
 {
@@ -16,27 +20,24 @@ class UserManagementService
         $query = User::query();
 
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         if ($role) {
-            $query->whereHas('roles', function($q) use ($role) {
+            $query->whereHas('roles', function ($q) use ($role) {
                 $q->where('id', $role)->orWhere('name', $role);
             });
         }
 
-        // ✅ FIXED - Simple eager loading without nested .role
         $users = $query->with([
-            'roles.permissions', 
+            'roles.permissions',
             'permissions'
         ])->paginate($perPage);
 
-        // Transform to your exact structure
         $users->getCollection()->transform(function ($user) {
-            // Get store data separately to avoid the relationship error
             $storeData = $this->getUserStores($user->id);
 
             return [
@@ -46,13 +47,12 @@ class UserManagementService
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
-                
-                // 1. Roles with their permissions
-                'roles' => $user->roles->map(function($role) {
+
+                'roles' => $user->roles->map(function ($role) {
                     return [
                         'id' => $role->id,
                         'name' => $role->name,
-                        'permissions' => $role->permissions->map(function($permission) {
+                        'permissions' => $role->permissions->map(function ($permission) {
                             return [
                                 'id' => $permission->id,
                                 'name' => $permission->name
@@ -60,16 +60,14 @@ class UserManagementService
                         })
                     ];
                 }),
-                
-                // 2. Direct permissions
-                'permissions' => $user->permissions->map(function($permission) {
+
+                'permissions' => $user->permissions->map(function ($permission) {
                     return [
                         'id' => $permission->id,
                         'name' => $permission->name
                     ];
                 }),
-                
-                // 3. Stores with roles in each store
+
                 'stores' => $storeData
             ];
         });
@@ -79,13 +77,11 @@ class UserManagementService
 
     private function getUserStores($userId)
     {
-        // Get user store assignments with roles and stores
         $assignments = UserRoleStore::where('user_id', $userId)
             ->where('is_active', true)
             ->with(['role.permissions', 'store'])
             ->get();
 
-        // Group by store
         $storeGroups = $assignments->groupBy('store_id');
         $stores = [];
 
@@ -97,7 +93,7 @@ class UserManagementService
                 $roles[] = [
                     'id' => $assignment->role->id,
                     'name' => $assignment->role->name,
-                    'permissions' => $assignment->role->permissions->map(function($permission) {
+                    'permissions' => $assignment->role->permissions->map(function ($permission) {
                         return [
                             'id' => $permission->id,
                             'name' => $permission->name
@@ -121,7 +117,7 @@ class UserManagementService
     public function getUserWithCompleteData(User $user): array
     {
         $user = $user->load(['roles.permissions', 'permissions']);
-        
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -129,13 +125,12 @@ class UserManagementService
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
-            
-            // 1. Roles with permissions
-            'roles' => $user->roles->map(function($role) {
+
+            'roles' => $user->roles->map(function ($role) {
                 return [
                     'id' => $role->id,
                     'name' => $role->name,
-                    'permissions' => $role->permissions->map(function($permission) {
+                    'permissions' => $role->permissions->map(function ($permission) {
                         return [
                             'id' => $permission->id,
                             'name' => $permission->name
@@ -143,113 +138,286 @@ class UserManagementService
                     })
                 ];
             }),
-            
-            // 2. Direct permissions
-            'permissions' => $user->permissions->map(function($permission) {
+
+            'permissions' => $user->permissions->map(function ($permission) {
                 return [
                     'id' => $permission->id,
                     'name' => $permission->name
                 ];
             }),
-            
-            // 3. Stores with roles
+
             'stores' => $this->getUserStores($user->id)
         ];
     }
-    public function createUser(array $data): User
+
+    /**
+     * Record event to outbox and dispatch publish job AFTER COMMIT.
+     */
+    private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'email_verified_at' => now(), // Auto-verify for admin created users
-        ]);
+        $factory = app(AuthEventFactory::class);
+        $outbox  = app(AuthOutboxService::class);
 
-        if (isset($data['roles'])) {
-            $user->assignRole($data['roles']);
-        }
+        $envelope = $factory->make($subject, $data, $request);
+        $row = $outbox->record($subject, $envelope);
 
-        if (isset($data['permissions'])) {
-            $user->givePermissionTo($data['permissions']);
-        }
-
-        return $user->getWithRolesAndPermissions();
+        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
     }
 
-    public function updateUser(User $user, array $data): User
+    private function diffAddedRemoved(array $from, array $to): array
     {
-        $updateData = [];
-        
-        if (isset($data['name'])) {
-            $updateData['name'] = $data['name'];
-        }
-        
-        if (isset($data['email'])) {
-            $updateData['email'] = $data['email'];
-        }
-        
-        if (isset($data['password'])) {
-            $updateData['password'] = Hash::make($data['password']);
-        }
+        $from = array_values(array_unique($from));
+        $to   = array_values(array_unique($to));
 
-        if (!empty($updateData)) {
-            $user->update($updateData);
-        }
+        $added = array_values(array_diff($to, $from));
+        $removed = array_values(array_diff($from, $to));
 
-        // Update roles
-        if (isset($data['roles'])) {
-            $user->syncRoles($data['roles']);
-        }
-
-        // Update permissions
-        if (isset($data['permissions'])) {
-            $user->syncPermissions($data['permissions']);
-        }
-
-        return $user->getWithRolesAndPermissions();
+        return [
+            'from' => $from,
+            'to' => $to,
+            'added' => $added,
+            'removed' => $removed,
+        ];
     }
 
-    public function deleteUser(User $user): bool
+    /**
+     * ✅ FULL SNAPSHOT EVENT on create only.
+     */
+    public function createUser(array $data, ?Request $request = null): User
     {
-        // Revoke all tokens before deletion
-        $user->tokens()->delete();
-        
-        return $user->delete();
+        return DB::transaction(function () use ($data, $request) {
+
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'email_verified_at' => now(),
+            ]);
+
+            if (isset($data['roles'])) {
+                $user->assignRole($data['roles']);
+            }
+
+            if (isset($data['permissions'])) {
+                $user->givePermissionTo($data['permissions']);
+            }
+
+            // Load only what we need once (this is also what you return)
+            $user = $user->fresh()->load(['roles.permissions', 'permissions']);
+
+            // FULL SNAPSHOT (created)
+            $this->recordEvent('auth.v1.user.created', [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'email_verified_at' => optional($user->email_verified_at)?->toIso8601String(),
+                    'created_at' => optional($user->created_at)?->toIso8601String(),
+                    'updated_at' => optional($user->updated_at)?->toIso8601String(),
+                ],
+                'roles' => $user->roles->pluck('name')->values()->toArray(),
+                'permissions_direct' => $user->permissions->pluck('name')->values()->toArray(),
+            ], $request);
+
+            // If you want these as deltas too (optional but consistent)
+            if (isset($data['roles'])) {
+                $this->recordEvent('auth.v1.user.role.assigned', [
+                    'user_id' => $user->id,
+                    'roles' => array_values($data['roles']),
+                ], $request);
+            }
+
+            if (isset($data['permissions'])) {
+                $this->recordEvent('auth.v1.user.permission.granted', [
+                    'user_id' => $user->id,
+                    'permissions' => array_values($data['permissions']),
+                ], $request);
+            }
+
+            return $user->getWithRolesAndPermissions();
+        });
     }
 
-    public function assignRolesToUser(User $user, array $roles): User
+    /**
+     * ✅ DELTA ONLY for user updated.
+     */
+    public function updateUser(User $user, array $data, ?Request $request = null): User
     {
-        $user->assignRole($roles);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $data, $request) {
+
+            $updateData = [];
+
+            if (isset($data['name'])) {
+                $updateData['name'] = $data['name'];
+            }
+
+            if (isset($data['email'])) {
+                $updateData['email'] = $data['email'];
+            }
+
+            if (isset($data['password'])) {
+                $updateData['password'] = Hash::make($data['password']);
+            }
+
+            if (!empty($updateData)) {
+                $user->update($updateData);
+            }
+
+            $fieldChanges = ModelChangeSet::fields($user, ['name', 'email', 'password', 'email_verified_at']);
+
+            // Roles sync => publish role.sync DELTA
+            if (isset($data['roles'])) {
+                $before = $user->roles()->pluck('name')->values()->toArray();
+                $user->syncRoles($data['roles']);
+                $after  = $user->fresh()->roles()->pluck('name')->values()->toArray();
+
+                $diff = $this->diffAddedRemoved($before, $after);
+
+                $this->recordEvent('auth.v1.user.role.synced', [
+                    'user_id' => $user->id,
+                    'roles' => $diff,
+                ], $request);
+            }
+
+            // Permissions sync => publish permission.sync DELTA
+            if (isset($data['permissions'])) {
+                $before = $user->permissions()->pluck('name')->values()->toArray();
+                $user->syncPermissions($data['permissions']);
+                $after  = $user->fresh()->permissions()->pluck('name')->values()->toArray();
+
+                $diff = $this->diffAddedRemoved($before, $after);
+
+                $this->recordEvent('auth.v1.user.permission.synced', [
+                    'user_id' => $user->id,
+                    'permissions' => $diff,
+                ], $request);
+            }
+
+            // If there were user field changes, publish only changes
+            if (!empty($fieldChanges)) {
+                $this->recordEvent('auth.v1.user.updated', [
+                    'user_id' => $user->id,
+                    'changed_fields' => $fieldChanges,
+                ], $request);
+            }
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
     }
 
-    public function removeRolesFromUser(User $user, array $roles): User
+    public function deleteUser(User $user, ?Request $request = null): bool
     {
-        $user->removeRole($roles);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $request) {
+
+            $userId = $user->id;
+            $email = $user->email;
+
+            $user->tokens()->delete();
+            $deleted = $user->delete();
+
+            $this->recordEvent('auth.v1.user.deleted', [
+                'user_id' => $userId,
+                'email' => $email,
+                'deleted_at' => now()->utc()->toIso8601String(),
+            ], $request);
+
+            return $deleted;
+        });
     }
 
-    public function syncUserRoles(User $user, array $roles): User
+    public function assignRolesToUser(User $user, array $roles, ?Request $request = null): User
     {
-        $user->syncRoles($roles);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $roles, $request) {
+            $user->assignRole($roles);
+
+            $this->recordEvent('auth.v1.user.role.assigned', [
+                'user_id' => $user->id,
+                'roles' => array_values($roles),
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
     }
 
-    public function givePermissionsToUser(User $user, array $permissions): User
+    public function removeRolesFromUser(User $user, array $roles, ?Request $request = null): User
     {
-        $user->givePermissionTo($permissions);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $roles, $request) {
+            foreach ($roles as $role) {
+                $user->removeRole($role);
+            }
+
+            $this->recordEvent('auth.v1.user.role.removed', [
+                'user_id' => $user->id,
+                'roles' => array_values($roles),
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
     }
 
-    public function revokePermissionsFromUser(User $user, array $permissions): User
+    public function syncUserRoles(User $user, array $roles, ?Request $request = null): User
     {
-        $user->revokePermissionTo($permissions);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $roles, $request) {
+            $before = $user->roles()->pluck('name')->values()->toArray();
+            $user->syncRoles($roles);
+            $after  = $user->fresh()->roles()->pluck('name')->values()->toArray();
+
+            $diff = $this->diffAddedRemoved($before, $after);
+
+            $this->recordEvent('auth.v1.user.role.synced', [
+                'user_id' => $user->id,
+                'roles' => $diff,
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
     }
 
-    public function syncUserPermissions(User $user, array $permissions): User
+    public function givePermissionsToUser(User $user, array $permissions, ?Request $request = null): User
     {
-        $user->syncPermissions($permissions);
-        return $user->getWithRolesAndPermissions();
+        return DB::transaction(function () use ($user, $permissions, $request) {
+            $user->givePermissionTo($permissions);
+
+            $this->recordEvent('auth.v1.user.permission.granted', [
+                'user_id' => $user->id,
+                'permissions' => array_values($permissions),
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
+    }
+
+    public function revokePermissionsFromUser(User $user, array $permissions, ?Request $request = null): User
+    {
+        return DB::transaction(function () use ($user, $permissions, $request) {
+            foreach ($permissions as $permission) {
+                $user->revokePermissionTo($permission);
+            }
+
+            $this->recordEvent('auth.v1.user.permission.revoked', [
+                'user_id' => $user->id,
+                'permissions' => array_values($permissions),
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
+    }
+
+    public function syncUserPermissions(User $user, array $permissions, ?Request $request = null): User
+    {
+        return DB::transaction(function () use ($user, $permissions, $request) {
+            $before = $user->permissions()->pluck('name')->values()->toArray();
+            $user->syncPermissions($permissions);
+            $after  = $user->fresh()->permissions()->pluck('name')->values()->toArray();
+
+            $diff = $this->diffAddedRemoved($before, $after);
+
+            $this->recordEvent('auth.v1.user.permission.synced', [
+                'user_id' => $user->id,
+                'permissions' => $diff,
+            ], $request);
+
+            return $user->fresh()->getWithRolesAndPermissions();
+        });
     }
 }

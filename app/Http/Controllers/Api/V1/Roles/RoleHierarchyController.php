@@ -17,7 +17,7 @@ class RoleHierarchyController extends Controller
     public function store(CreateRoleHierarchyRequest $request): JsonResponse
     {
         try {
-            $hierarchy = $this->hierarchyService->createHierarchy($request->validated());
+            $hierarchy = $this->hierarchyService->createHierarchy($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -45,7 +45,8 @@ class RoleHierarchyController extends Controller
             $removed = $this->hierarchyService->removeHierarchy(
                 $request->higher_role_id,
                 $request->lower_role_id,
-                $request->store_id
+                $request->store_id,
+                $request
             );
 
             if ($removed) {

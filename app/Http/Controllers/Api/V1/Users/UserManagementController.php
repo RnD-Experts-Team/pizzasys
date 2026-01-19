@@ -35,7 +35,7 @@ class UserManagementController extends Controller
     public function store(CreateUserRequest $request): JsonResponse
     {
         try {
-            $user = $this->userManagementService->createUser($request->validated());
+            $user = $this->userManagementService->createUser($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -52,17 +52,17 @@ class UserManagementController extends Controller
     }
 
     public function show(User $user): JsonResponse
-{
-    return response()->json([
-        'success' => true,
-        'data' => ['user' => $this->userManagementService->getUserWithCompleteData($user)]
-    ]);
-}
+    {
+        return response()->json([
+            'success' => true,
+            'data' => ['user' => $this->userManagementService->getUserWithCompleteData($user)]
+        ]);
+    }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->updateUser($user, $request->validated());
+            $updatedUser = $this->userManagementService->updateUser($user, $request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -78,10 +78,10 @@ class UserManagementController extends Controller
         }
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
         try {
-            $this->userManagementService->deleteUser($user);
+            $this->userManagementService->deleteUser($user, $request);
 
             return response()->json([
                 'success' => true,
@@ -99,7 +99,7 @@ class UserManagementController extends Controller
     public function assignRoles(AssignRolesRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->assignRolesToUser($user, $request->roles);
+            $updatedUser = $this->userManagementService->assignRolesToUser($user, $request->roles, $request);
 
             return response()->json([
                 'success' => true,
@@ -118,7 +118,7 @@ class UserManagementController extends Controller
     public function removeRoles(AssignRolesRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->removeRolesFromUser($user, $request->roles);
+            $updatedUser = $this->userManagementService->removeRolesFromUser($user, $request->roles, $request);
 
             return response()->json([
                 'success' => true,
@@ -137,7 +137,7 @@ class UserManagementController extends Controller
     public function syncRoles(AssignRolesRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->syncUserRoles($user, $request->roles);
+            $updatedUser = $this->userManagementService->syncUserRoles($user, $request->roles, $request);
 
             return response()->json([
                 'success' => true,
@@ -156,7 +156,7 @@ class UserManagementController extends Controller
     public function givePermissions(AssignPermissionsRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->givePermissionsToUser($user, $request->permissions);
+            $updatedUser = $this->userManagementService->givePermissionsToUser($user, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,
@@ -175,7 +175,7 @@ class UserManagementController extends Controller
     public function revokePermissions(AssignPermissionsRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->revokePermissionsFromUser($user, $request->permissions);
+            $updatedUser = $this->userManagementService->revokePermissionsFromUser($user, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,
@@ -194,7 +194,7 @@ class UserManagementController extends Controller
     public function syncPermissions(AssignPermissionsRequest $request, User $user): JsonResponse
     {
         try {
-            $updatedUser = $this->userManagementService->syncUserPermissions($user, $request->permissions);
+            $updatedUser = $this->userManagementService->syncUserPermissions($user, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,

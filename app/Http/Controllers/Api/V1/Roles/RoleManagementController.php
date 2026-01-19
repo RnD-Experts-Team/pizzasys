@@ -33,7 +33,7 @@ class RoleManagementController extends Controller
     public function store(CreateRoleRequest $request): JsonResponse
     {
         try {
-            $role = $this->roleManagementService->createRole($request->validated());
+            $role = $this->roleManagementService->createRole($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -60,7 +60,7 @@ class RoleManagementController extends Controller
     public function update(UpdateRoleRequest $request, Role $role): JsonResponse
     {
         try {
-            $updatedRole = $this->roleManagementService->updateRole($role, $request->validated());
+            $updatedRole = $this->roleManagementService->updateRole($role, $request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -76,11 +76,10 @@ class RoleManagementController extends Controller
         }
     }
 
-    public function destroy(Role $role): JsonResponse
+    public function destroy(Request $request, Role $role): JsonResponse
     {
         try {
-            $this->roleManagementService->deleteRole($role);
-
+            $this->roleManagementService->deleteRole($role, $request);
             return response()->json([
                 'success' => true,
                 'message' => 'Role deleted successfully'
@@ -97,7 +96,7 @@ class RoleManagementController extends Controller
     public function assignPermissions(AssignPermissionsRequest $request, Role $role): JsonResponse
     {
         try {
-            $updatedRole = $this->roleManagementService->assignPermissionsToRole($role, $request->permissions);
+            $updatedRole = $this->roleManagementService->assignPermissionsToRole($role, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,
@@ -116,7 +115,7 @@ class RoleManagementController extends Controller
     public function revokePermissions(AssignPermissionsRequest $request, Role $role): JsonResponse
     {
         try {
-            $updatedRole = $this->roleManagementService->removePermissionsFromRole($role, $request->permissions);
+            $updatedRole = $this->roleManagementService->removePermissionsFromRole($role, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,
@@ -135,7 +134,7 @@ class RoleManagementController extends Controller
     public function syncPermissions(AssignPermissionsRequest $request, Role $role): JsonResponse
     {
         try {
-            $updatedRole = $this->roleManagementService->syncRolePermissions($role, $request->permissions);
+            $updatedRole = $this->roleManagementService->syncRolePermissions($role, $request->permissions, $request);
 
             return response()->json([
                 'success' => true,

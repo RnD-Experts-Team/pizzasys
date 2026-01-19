@@ -32,7 +32,7 @@ class StoreController extends Controller
     public function store(CreateStoreRequest $request): JsonResponse
     {
         try {
-            $store = $this->storeService->createStore($request->validated());
+            $store = $this->storeService->createStore($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -59,7 +59,7 @@ class StoreController extends Controller
     public function update(UpdateStoreRequest $request, Store $store): JsonResponse
     {
         try {
-            $updatedStore = $this->storeService->updateStore($store, $request->validated());
+            $updatedStore = $this->storeService->updateStore($store, $request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -75,10 +75,10 @@ class StoreController extends Controller
         }
     }
 
-    public function destroy(Store $store): JsonResponse
+    public function destroy(Request $request, Store $store): JsonResponse
     {
         try {
-            $this->storeService->deleteStore($store);
+            $this->storeService->deleteStore($store, $request);
 
             return response()->json([
                 'success' => true,

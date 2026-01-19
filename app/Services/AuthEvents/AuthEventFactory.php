@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Services\AuthEvents;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AuthEventFactory
+{
+    public function make(
+        string $type,
+        array $data,
+        ?Request $request = null,
+        array $metaOverrides = []
+    ): array {
+        $now = now()->utc()->toIso8601String();
+
+        $meta = array_merge([
+            'correlation_id' => $request?->headers->get('X-Correlation-Id') ?? (string) Str::uuid(),
+            'causation_id'   => $request?->headers->get('X-Causation-Id'),
+            'actor_user_id'  => optional($request?->user())->id,
+            'actor_type'     => $request?->user() ? 'user' : 'service_client',
+            'actor_ip'       => $request?->ip(),
+            'user_agent'     => $request?->userAgent(),
+        ], $metaOverrides);
+
+        return [
+            'specversion' => '1.0',
+            'id' => (string) Str::ulid(),
+            'type' => $type,
+            'source' => 'auth-system',
+            'subject' => $type,
+            'time' => $now,
+            'datacontenttype' => 'application/json',
+            'data' => $data,
+            'meta' => $meta,
+        ];
+    }
+}

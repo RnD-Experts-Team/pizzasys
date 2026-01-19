@@ -32,7 +32,7 @@ class PermissionManagementController extends Controller
     public function store(CreatePermissionRequest $request): JsonResponse
     {
         try {
-            $permission = $this->permissionManagementService->createPermission($request->validated());
+            $permission = $this->permissionManagementService->createPermission($request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -59,7 +59,7 @@ class PermissionManagementController extends Controller
     public function update(UpdatePermissionRequest $request, Permission $permission): JsonResponse
     {
         try {
-            $updatedPermission = $this->permissionManagementService->updatePermission($permission, $request->validated());
+            $updatedPermission = $this->permissionManagementService->updatePermission($permission, $request->validated(), $request);
 
             return response()->json([
                 'success' => true,
@@ -75,10 +75,10 @@ class PermissionManagementController extends Controller
         }
     }
 
-    public function destroy(Permission $permission): JsonResponse
+    public function destroy(Request $request, Permission $permission): JsonResponse
     {
         try {
-            $this->permissionManagementService->deletePermission($permission);
+            $this->permissionManagementService->deletePermission($permission, $request);
 
             return response()->json([
                 'success' => true,
