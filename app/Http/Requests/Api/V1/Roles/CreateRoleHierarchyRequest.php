@@ -17,7 +17,7 @@ class CreateRoleHierarchyRequest extends FormRequest
         return [
             'higher_role_id' => 'required|integer|exists:roles,id',
             'lower_role_id' => 'required|integer|exists:roles,id|different:higher_role_id',
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
             'metadata' => 'sometimes|array',
             'is_active' => 'sometimes|boolean',
         ];
@@ -26,13 +26,12 @@ class CreateRoleHierarchyRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Use the comprehensive validation from the service
             $hierarchyService = app(RoleHierarchyService::class);
-            
+
             $errors = $hierarchyService->validateHierarchy(
-                $this->higher_role_id,
-                $this->lower_role_id,
-                $this->store_id
+                (int) $this->higher_role_id,
+                (int) $this->lower_role_id,
+                (int) $this->store_id
             );
 
             foreach ($errors as $error) {

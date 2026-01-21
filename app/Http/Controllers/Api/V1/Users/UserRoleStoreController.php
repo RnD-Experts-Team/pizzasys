@@ -38,14 +38,14 @@ class UserRoleStoreController extends Controller
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
             'role_id' => 'required|integer|exists:roles,id',
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
         ]);
 
         try {
             $removed = $this->userRoleStoreService->removeUserRoleStore(
-                $request->user_id,
-                $request->role_id,
-                $request->store_id,
+                (int) $request->user_id,
+                (int) $request->role_id,
+                (int) $request->store_id,
                 $request
             );
 
@@ -74,14 +74,14 @@ class UserRoleStoreController extends Controller
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
             'role_id' => 'required|integer|exists:roles,id',
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
         ]);
 
         try {
             $toggled = $this->userRoleStoreService->toggleUserRoleStore(
-                $request->user_id,
-                $request->role_id,
-                $request->store_id,
+                (int) $request->user_id,
+                (int) $request->role_id,
+                (int) $request->store_id,
                 $request
             );
 
@@ -109,12 +109,12 @@ class UserRoleStoreController extends Controller
     {
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
-            'store_id' => 'sometimes|string|exists:stores,id',
+            'store_id' => 'sometimes|integer|exists:stores,id',
         ]);
 
         $assignments = $this->userRoleStoreService->getUserRoleStoreAssignments(
-            $request->user_id,
-            $request->get('store_id')
+            (int) $request->user_id,
+            $request->filled('store_id') ? (int) $request->get('store_id') : null
         );
 
         return response()->json([
@@ -126,13 +126,13 @@ class UserRoleStoreController extends Controller
     public function getStoreAssignments(Request $request): JsonResponse
     {
         $request->validate([
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
             'role_id' => 'sometimes|integer|exists:roles,id',
         ]);
 
         $assignments = $this->userRoleStoreService->getStoreRoleAssignments(
-            $request->store_id,
-            $request->get('role_id')
+            (int) $request->store_id,
+            $request->filled('role_id') ? (int) $request->get('role_id') : null
         );
 
         return response()->json([
@@ -147,14 +147,14 @@ class UserRoleStoreController extends Controller
             'user_id' => 'required|integer|exists:users,id',
             'assignments' => 'required|array|min:1',
             'assignments.*.role_id' => 'required|integer|exists:roles,id',
-            'assignments.*.store_id' => 'required|string|exists:stores,id',
+            'assignments.*.store_id' => 'required|integer|exists:stores,id',
             'assignments.*.metadata' => 'sometimes|array',
             'assignments.*.is_active' => 'sometimes|boolean',
         ]);
 
         try {
             $results = $this->userRoleStoreService->bulkAssignUserRoleStore(
-                $request->user_id,
+                (int) $request->user_id,
                 $request->assignments,
                 $request
             );

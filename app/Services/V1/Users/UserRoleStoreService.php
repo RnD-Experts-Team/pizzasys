@@ -12,9 +12,6 @@ use App\Jobs\PublishAuthOutboxEventJob;
 
 class UserRoleStoreService
 {
-    /**
-     * Record event to outbox and dispatch publish job AFTER COMMIT.
-     */
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
@@ -26,18 +23,14 @@ class UserRoleStoreService
         DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
     }
 
-    /**
-     * Assign (create) a user-role-store relationship.
-     * Event: auth.v1.assignment.user_role_store.assigned
-     */
     public function assignUserRoleStore(array $data, ?Request $request = null): UserRoleStore
     {
         return DB::transaction(function () use ($data, $request) {
 
             $assignment = UserRoleStore::create([
-                'user_id' => $data['user_id'],
-                'role_id' => $data['role_id'],
-                'store_id' => $data['store_id'],
+                'user_id' => (int) $data['user_id'],
+                'role_id' => (int) $data['role_id'],
+                'store_id' => (int) $data['store_id'],
                 'metadata' => $data['metadata'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
             ]);
@@ -45,9 +38,9 @@ class UserRoleStoreService
             $this->recordEvent('auth.v1.assignment.user_role_store.assigned', [
                 'assignment' => [
                     'id' => $assignment->id,
-                    'user_id' => $assignment->user_id,
-                    'role_id' => $assignment->role_id,
-                    'store_id' => $assignment->store_id,
+                    'user_id' => (int) $assignment->user_id,
+                    'role_id' => (int) $assignment->role_id,
+                    'store_id' => (int) $assignment->store_id,
                     'metadata' => $assignment->metadata,
                     'is_active' => (bool) $assignment->is_active,
                     'created_at' => optional($assignment->created_at)?->toIso8601String(),
@@ -59,15 +52,10 @@ class UserRoleStoreService
         });
     }
 
-    /**
-     * Remove (delete) a user-role-store relationship.
-     * Event: auth.v1.assignment.user_role_store.removed
-     */
-    public function removeUserRoleStore(int $userId, int $roleId, string $storeId, ?Request $request = null): bool
+    public function removeUserRoleStore(int $userId, int $roleId, int $storeId, ?Request $request = null): bool
     {
         return DB::transaction(function () use ($userId, $roleId, $storeId, $request) {
 
-            // Grab assignment id (optional) before delete for better traceability
             $assignment = UserRoleStore::where('user_id', $userId)
                 ->where('role_id', $roleId)
                 ->where('store_id', $storeId)
@@ -92,11 +80,7 @@ class UserRoleStoreService
         });
     }
 
-    /**
-     * Toggle is_active for an assignment.
-     * Event: auth.v1.assignment.user_role_store.toggled
-     */
-    public function toggleUserRoleStore(int $userId, int $roleId, string $storeId, ?Request $request = null): bool
+    public function toggleUserRoleStore(int $userId, int $roleId, int $storeId, ?Request $request = null): bool
     {
         return DB::transaction(function () use ($userId, $roleId, $storeId, $request) {
 
@@ -128,10 +112,9 @@ class UserRoleStoreService
         });
     }
 
-    public function getUserRoleStoreAssignments(int $userId, string $storeId = null)
+    public function getUserRoleStoreAssignments(int $userId, int $storeId = null)
     {
-        $query = UserRoleStore::where('user_id', $userId)
-            ->with(['role', 'store']);
+        $query = UserRoleStore::where('user_id', $userId)->with(['role', 'store']);
 
         if ($storeId) {
             $query->where('store_id', $storeId);
@@ -140,10 +123,9 @@ class UserRoleStoreService
         return $query->get();
     }
 
-    public function getStoreRoleAssignments(string $storeId, int $roleId = null)
+    public function getStoreRoleAssignments(int $storeId, int $roleId = null)
     {
-        $query = UserRoleStore::where('store_id', $storeId)
-            ->with(['user', 'role']);
+        $query = UserRoleStore::where('store_id', $storeId)->with(['user', 'role']);
 
         if ($roleId) {
             $query->where('role_id', $roleId);
@@ -152,12 +134,6 @@ class UserRoleStoreService
         return $query->get();
     }
 
-    /**
-     * Bulk assignment.
-     * Event: auth.v1.assignment.user_role_store.bulk_assigned (single batch event)
-     *
-     * If you prefer 1 event per row as well, tell me and I’ll add it (still safe).
-     */
     public function bulkAssignUserRoleStore(int $userId, array $assignments, ?Request $request = null): array
     {
         return DB::transaction(function () use ($userId, $assignments, $request) {
@@ -167,8 +143,8 @@ class UserRoleStoreService
             foreach ($assignments as $assignment) {
                 $results[] = UserRoleStore::create([
                     'user_id' => $userId,
-                    'role_id' => $assignment['role_id'],
-                    'store_id' => $assignment['store_id'],
+                    'role_id' => (int) $assignment['role_id'],
+                    'store_id' => (int) $assignment['store_id'],
                     'metadata' => $assignment['metadata'] ?? null,
                     'is_active' => $assignment['is_active'] ?? true,
                 ]);
@@ -181,8 +157,8 @@ class UserRoleStoreService
                     /** @var \App\Models\UserRoleStore $row */
                     return [
                         'id' => $row->id,
-                        'role_id' => $row->role_id,
-                        'store_id' => $row->store_id,
+                        'role_id' => (int) $row->role_id,
+                        'store_id' => (int) $row->store_id,
                         'metadata' => $row->metadata,
                         'is_active' => (bool) $row->is_active,
                         'created_at' => optional($row->created_at)?->toIso8601String(),

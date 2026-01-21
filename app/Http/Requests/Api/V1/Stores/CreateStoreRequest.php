@@ -14,7 +14,7 @@ class CreateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id' => 'required|string|max:255|unique:stores,id',
+            'store_id' => 'required|string|max:255|unique:stores,store_id',
             'name' => 'required|string|max:255|unique:stores,name',
             'metadata' => 'sometimes|array',
             'is_active' => 'sometimes|boolean',
@@ -24,7 +24,7 @@ class CreateStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'id.unique' => 'A store with this ID already exists.',
+            'store_id.unique' => 'A store with this store_id already exists.',
             'name.unique' => 'A store with this name already exists.',
         ];
     }

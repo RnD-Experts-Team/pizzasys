@@ -15,9 +15,6 @@ use App\Jobs\PublishAuthOutboxEventJob;
 
 class RoleHierarchyService
 {
-    /**
-     * Record event to outbox and dispatch publish job AFTER COMMIT.
-     */
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
@@ -29,18 +26,14 @@ class RoleHierarchyService
         DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
     }
 
-    /**
-     * Event: auth.v1.assignment.role_hierarchy.created
-     */
     public function createHierarchy(array $data, ?Request $request = null): RoleHierarchy
     {
         return DB::transaction(function () use ($data, $request) {
 
-            // Validate hierarchy before creation
             $errors = $this->validateHierarchy(
-                $data['higher_role_id'],
-                $data['lower_role_id'],
-                $data['store_id']
+                (int) $data['higher_role_id'],
+                (int) $data['lower_role_id'],
+                (int) $data['store_id']
             );
 
             if (!empty($errors)) {
@@ -48,9 +41,9 @@ class RoleHierarchyService
             }
 
             $hierarchy = RoleHierarchy::create([
-                'higher_role_id' => $data['higher_role_id'],
-                'lower_role_id' => $data['lower_role_id'],
-                'store_id' => $data['store_id'],
+                'higher_role_id' => (int) $data['higher_role_id'],
+                'lower_role_id' => (int) $data['lower_role_id'],
+                'store_id' => (int) $data['store_id'],
                 'metadata' => $data['metadata'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
             ]);
@@ -58,7 +51,7 @@ class RoleHierarchyService
             $this->recordEvent('auth.v1.assignment.role_hierarchy.created', [
                 'hierarchy' => [
                     'id' => $hierarchy->id,
-                    'store_id' => $hierarchy->store_id,
+                    'store_id' => (int) $hierarchy->store_id,
                     'higher_role_id' => (int) $hierarchy->higher_role_id,
                     'lower_role_id' => (int) $hierarchy->lower_role_id,
                     'is_active' => (bool) $hierarchy->is_active,
@@ -72,16 +65,10 @@ class RoleHierarchyService
         });
     }
 
-    /**
-     * Event: auth.v1.assignment.role_hierarchy.removed
-     *
-     * Note: we only publish if a row was actually deleted.
-     */
-    public function removeHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId, ?Request $request = null): bool
+    public function removeHierarchy(int $higherRoleId, int $lowerRoleId, int $storeId, ?Request $request = null): bool
     {
         return DB::transaction(function () use ($higherRoleId, $lowerRoleId, $storeId, $request) {
 
-            // optional: capture hierarchy id before delete (for traceability)
             $row = RoleHierarchy::where('higher_role_id', $higherRoleId)
                 ->where('lower_role_id', $lowerRoleId)
                 ->where('store_id', $storeId)
@@ -106,7 +93,7 @@ class RoleHierarchyService
         });
     }
 
-    public function getStoreHierarchy(string $storeId)
+    public function getStoreHierarchy(int $storeId)
     {
         return RoleHierarchy::where('store_id', $storeId)
             ->where('is_active', true)
@@ -114,12 +101,11 @@ class RoleHierarchyService
             ->get();
     }
 
-    public function getRoleHierarchyTree(string $storeId): array
+    public function getRoleHierarchyTree(int $storeId): array
     {
         $hierarchies = $this->getStoreHierarchy($storeId);
         $tree = [];
 
-        // Find root roles (roles that don't have higher roles)
         $allLowerRoles = $hierarchies->pluck('lower_role_id')->unique();
         $allHigherRoles = $hierarchies->pluck('higher_role_id')->unique();
         $rootRoles = $allHigherRoles->diff($allLowerRoles);
@@ -127,7 +113,7 @@ class RoleHierarchyService
         foreach ($rootRoles as $rootRoleId) {
             $rootRole = Role::find($rootRoleId);
             if ($rootRole) {
-                $processed = []; // Reset for each root
+                $processed = [];
                 $tree[] = $this->buildHierarchyTree($rootRole, $storeId, $hierarchies, $processed);
             }
         }
@@ -135,7 +121,7 @@ class RoleHierarchyService
         return $tree;
     }
 
-    private function buildHierarchyTree(Role $role, string $storeId, $hierarchies, array &$processed): array
+    private function buildHierarchyTree(Role $role, int $storeId, $hierarchies, array &$processed): array
     {
         if (in_array($role->id, $processed)) {
             return ['role' => $role, 'children' => [], 'circular_detected' => true];
@@ -157,24 +143,17 @@ class RoleHierarchyService
         return [
             'role' => $role,
             'children' => $children,
-            'permissions' => $role->permissions ?? []
+            'permissions' => $role->permissions ?? [],
         ];
     }
 
-    public function validateHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId): array
+    public function validateHierarchy(int $higherRoleId, int $lowerRoleId, int $storeId): array
     {
         $errors = [];
 
-        if (!Role::find($higherRoleId)) {
-            $errors[] = 'Higher role does not exist';
-        }
-        if (!Role::find($lowerRoleId)) {
-            $errors[] = 'Lower role does not exist';
-        }
-
-        if (!Store::find($storeId)) {
-            $errors[] = 'Store does not exist';
-        }
+        if (!Role::find($higherRoleId)) $errors[] = 'Higher role does not exist';
+        if (!Role::find($lowerRoleId)) $errors[] = 'Lower role does not exist';
+        if (!Store::find($storeId)) $errors[] = 'Store does not exist';
 
         if ($higherRoleId === $lowerRoleId) {
             $errors[] = 'A role cannot manage itself';
@@ -196,7 +175,7 @@ class RoleHierarchyService
         return $errors;
     }
 
-    private function wouldCreateCircularHierarchy(int $higherRoleId, int $lowerRoleId, string $storeId): bool
+    private function wouldCreateCircularHierarchy(int $higherRoleId, int $lowerRoleId, int $storeId): bool
     {
         $hierarchies = RoleHierarchy::where('store_id', $storeId)
             ->where('is_active', true)
@@ -210,12 +189,10 @@ class RoleHierarchyService
 
         $adjacencyList = [];
         foreach ($allHierarchies as $hierarchy) {
-            $higher = $hierarchy['higher_role_id'];
-            $lower = $hierarchy['lower_role_id'];
+            $higher = (int) $hierarchy['higher_role_id'];
+            $lower  = (int) $hierarchy['lower_role_id'];
 
-            if (!isset($adjacencyList[$higher])) {
-                $adjacencyList[$higher] = [];
-            }
+            $adjacencyList[$higher] ??= [];
             $adjacencyList[$higher][] = $lower;
         }
 
@@ -229,7 +206,7 @@ class RoleHierarchyService
 
         foreach ($adjacencyList as $node => $neighbors) {
             if (!isset($visited[$node])) {
-                if ($this->hasCycleDFS($node, $adjacencyList, $visited, $recursionStack)) {
+                if ($this->hasCycleDFS((int) $node, $adjacencyList, $visited, $recursionStack)) {
                     return true;
                 }
             }
@@ -243,15 +220,15 @@ class RoleHierarchyService
         $visited[$node] = true;
         $recursionStack[$node] = true;
 
-        if (isset($adjacencyList[$node])) {
-            foreach ($adjacencyList[$node] as $neighbor) {
-                if (!isset($visited[$neighbor])) {
-                    if ($this->hasCycleDFS($neighbor, $adjacencyList, $visited, $recursionStack)) {
-                        return true;
-                    }
-                } elseif (isset($recursionStack[$neighbor]) && $recursionStack[$neighbor]) {
+        foreach ($adjacencyList[$node] ?? [] as $neighbor) {
+            $neighbor = (int) $neighbor;
+
+            if (!isset($visited[$neighbor])) {
+                if ($this->hasCycleDFS($neighbor, $adjacencyList, $visited, $recursionStack)) {
                     return true;
                 }
+            } elseif (!empty($recursionStack[$neighbor])) {
+                return true;
             }
         }
 
@@ -259,7 +236,7 @@ class RoleHierarchyService
         return false;
     }
 
-    public function getAffectedRoles(int $higherRoleId, int $lowerRoleId, string $storeId): array
+    public function getAffectedRoles(int $higherRoleId, int $lowerRoleId, int $storeId): array
     {
         $hierarchies = RoleHierarchy::where('store_id', $storeId)
             ->where('is_active', true)
@@ -282,6 +259,7 @@ class RoleHierarchyService
         $directSubordinates = $hierarchies->where('higher_role_id', $roleId)->pluck('lower_role_id');
 
         foreach ($directSubordinates as $subordinate) {
+            $subordinate = (int) $subordinate;
             $subordinates->push($subordinate);
             $subordinates = $subordinates->merge($this->getAllSubordinates($subordinate, $hierarchies));
         }
@@ -295,6 +273,7 @@ class RoleHierarchyService
         $directSuperiors = $hierarchies->where('lower_role_id', $roleId)->pluck('higher_role_id');
 
         foreach ($directSuperiors as $superior) {
+            $superior = (int) $superior;
             $superiors->push($superior);
             $superiors = $superiors->merge($this->getAllSuperiors($superior, $hierarchies));
         }

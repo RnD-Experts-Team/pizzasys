@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class RoleHierarchy extends Model
 {
     protected $table = 'role_hierarchy';
-    
+
     protected $fillable = [
-        'higher_role_id', 'lower_role_id', 'store_id', 'metadata', 'is_active'
+        'higher_role_id',
+        'lower_role_id',
+        'store_id', // numeric FK to stores.id
+        'metadata',
+        'is_active',
     ];
 
     protected $casts = [

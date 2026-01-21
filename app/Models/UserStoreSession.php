@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class UserStoreSession extends Model
 {
     protected $fillable = [
-        'user_id', 'store_id', 'session_token', 'expires_at'
+        'user_id',
+        'store_id', // numeric FK to stores.id
+        'session_token',
+        'expires_at',
     ];
 
     protected $casts = [

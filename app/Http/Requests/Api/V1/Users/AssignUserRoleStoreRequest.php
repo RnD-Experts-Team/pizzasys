@@ -16,7 +16,7 @@ class AssignUserRoleStoreRequest extends FormRequest
         return [
             'user_id' => 'required|integer|exists:users,id',
             'role_id' => 'required|integer|exists:roles,id',
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
             'metadata' => 'sometimes|array',
             'is_active' => 'sometimes|boolean',
         ];

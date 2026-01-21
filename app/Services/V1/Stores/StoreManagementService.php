@@ -14,9 +14,6 @@ use App\Jobs\PublishAuthOutboxEventJob;
 
 class StoreManagementService
 {
-    /**
-     * Record event to outbox and dispatch publish job AFTER COMMIT.
-     */
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
@@ -35,22 +32,19 @@ class StoreManagementService
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('id', 'like', "%{$search}%");
+                    ->orWhere('store_id', 'like', "%{$search}%"); // manual store_id search
             });
         }
 
         return $query->orderBy('name')->paginate($perPage);
     }
 
-    /**
-     * Event: auth.v1.store.created (snapshot)
-     */
     public function createStore(array $data, ?Request $request = null): Store
     {
         return DB::transaction(function () use ($data, $request) {
 
             $store = Store::create([
-                'id' => $data['id'],
+                'store_id' => $data['store_id'],
                 'name' => $data['name'],
                 'metadata' => $data['metadata'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
@@ -58,7 +52,8 @@ class StoreManagementService
 
             $this->recordEvent('auth.v1.store.created', [
                 'store' => [
-                    'id' => $store->id,
+                    'id' => (int) $store->id,                 // numeric PK
+                    'store_id' => (string) $store->store_id,  // manual string id
                     'name' => $store->name,
                     'metadata' => $store->metadata,
                     'is_active' => (bool) $store->is_active,
@@ -71,22 +66,17 @@ class StoreManagementService
         });
     }
 
-    /**
-     * Event: auth.v1.store.updated (delta)
-     */
     public function updateStore(Store $store, array $data, ?Request $request = null): Store
     {
         return DB::transaction(function () use ($store, $data, $request) {
 
-            $storeId = $store->id;
+            $storePk = (int) $store->id;
 
-            // Capture old values before update for delta reporting
             $old = $store->replicate()->toArray();
 
             $store->update($data);
             $store = $store->fresh();
 
-            // Compute delta (only the fields we allow to change)
             $changed = ModelChangeSet::fromArrays(
                 $old,
                 $store->toArray(),
@@ -95,7 +85,7 @@ class StoreManagementService
 
             if (!empty($changed)) {
                 $this->recordEvent('auth.v1.store.updated', [
-                    'store_id' => $storeId,
+                    'store_id' => $storePk,
                     'changed_fields' => $changed,
                     'updated_at' => optional($store->updated_at)?->toIso8601String(),
                 ], $request);
@@ -105,27 +95,23 @@ class StoreManagementService
         });
     }
 
-    /**
-     * Event: auth.v1.store.deleted (minimal)
-     */
     public function deleteStore(Store $store, ?Request $request = null): bool
     {
         return DB::transaction(function () use ($store, $request) {
 
-            $storeId = $store->id;
-            $storeName = $store->name;
+            $storePk = (int) $store->id;
 
             $deleted = $store->delete();
 
             if ($deleted) {
                 $this->recordEvent('auth.v1.store.deleted', [
-                    'store_id' => $storeId,
-                    'store_name' => $storeName,
+                    'store_id' => $storePk,
+                    'store_name' => $store->name,
                     'deleted_at' => now()->utc()->toIso8601String(),
                 ], $request);
             }
 
-            return $deleted;
+            return (bool) $deleted;
         });
     }
 

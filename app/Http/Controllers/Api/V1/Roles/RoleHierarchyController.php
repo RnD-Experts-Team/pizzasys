@@ -38,14 +38,14 @@ class RoleHierarchyController extends Controller
         $request->validate([
             'higher_role_id' => 'required|integer|exists:roles,id',
             'lower_role_id' => 'required|integer|exists:roles,id',
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
         ]);
 
         try {
             $removed = $this->hierarchyService->removeHierarchy(
-                $request->higher_role_id,
-                $request->lower_role_id,
-                $request->store_id,
+                (int) $request->higher_role_id,
+                (int) $request->lower_role_id,
+                (int) $request->store_id,
                 $request
             );
 
@@ -72,10 +72,10 @@ class RoleHierarchyController extends Controller
     public function getStoreHierarchy(Request $request): JsonResponse
     {
         $request->validate([
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
         ]);
 
-        $hierarchies = $this->hierarchyService->getStoreHierarchy($request->store_id);
+        $hierarchies = $this->hierarchyService->getStoreHierarchy((int) $request->store_id);
 
         return response()->json([
             'success' => true,
@@ -86,10 +86,10 @@ class RoleHierarchyController extends Controller
     public function getHierarchyTree(Request $request): JsonResponse
     {
         $request->validate([
-            'store_id' => 'required|string|exists:stores,id',
+            'store_id' => 'required|integer|exists:stores,id',
         ]);
 
-        $tree = $this->hierarchyService->getRoleHierarchyTree($request->store_id);
+        $tree = $this->hierarchyService->getRoleHierarchyTree((int) $request->store_id);
 
         return response()->json([
             'success' => true,
@@ -102,18 +102,20 @@ class RoleHierarchyController extends Controller
         $request->validate([
             'higher_role_id' => 'required|integer',
             'lower_role_id' => 'required|integer',
-            'store_id' => 'required|string',
+            'store_id' => 'required|integer',
         ]);
 
         $errors = $this->hierarchyService->validateHierarchy(
-            $request->higher_role_id,
-            $request->lower_role_id,
-            $request->store_id
+            (int) $request->higher_role_id,
+            (int) $request->lower_role_id,
+            (int) $request->store_id
         );
 
+        $isValid = empty($errors);
+
         return response()->json([
-            'success' => !empty($errors),
-            'valid' => !empty($errors),
+            'success' => $isValid,
+            'valid' => $isValid,
             'errors' => $errors
         ]);
     }
