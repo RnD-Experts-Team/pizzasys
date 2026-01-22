@@ -11,7 +11,7 @@ class RoleHierarchy extends Model
     protected $fillable = [
         'higher_role_id',
         'lower_role_id',
-        'store_id', // numeric FK to stores.id
+        'store_id',
         'metadata',
         'is_active',
     ];

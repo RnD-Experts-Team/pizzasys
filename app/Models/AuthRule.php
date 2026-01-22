@@ -7,62 +7,118 @@ use Illuminate\Database\Eloquent\Model;
 class AuthRule extends Model
 {
     protected $fillable = [
-        'service','method','path_dsl','path_regex','route_name',
-        'roles_any','permissions_any','permissions_all',
-        'is_active','priority',
+        'service',
+        'method',
+        'path_dsl',
+        'path_regex',
+        'route_name',
+        'roles_any',
+        'permissions_any',
+        'permissions_all',
+        'store_scope_mode',
+        'store_id_sources',
+        'store_match_policy',
+        'store_allows_empty',
+        'store_all_access_roles_any',
+        'store_all_access_permissions_any',
+        'is_active',
+        'priority',
     ];
 
     protected $casts = [
-        'roles_any'        => 'array',
-        'permissions_any'  => 'array',
-        'permissions_all'  => 'array',
-        'is_active'        => 'boolean',
-        'priority'         => 'integer',
+        'roles_any'                     => 'array',
+        'permissions_any'               => 'array',
+        'permissions_all'               => 'array',
+        'store_id_sources'              => 'array',
+        'store_all_access_roles_any'    => 'array',
+        'store_all_access_permissions_any' => 'array',
+        'store_allows_empty'            => 'boolean',
+        'is_active'                     => 'boolean',
+        'priority'                      => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (AuthRule $rule) {
+            // Normalize
+            $rule->method = strtoupper($rule->method ?: 'ANY');
+
+            // Compile regex from DSL if DSL exists
+            if (!empty($rule->path_dsl)) {
+                $rule->path_regex = static::compilePathDslToRegex($rule->path_dsl);
+            } else {
+                $rule->path_regex = null;
+            }
+        });
+    }
+
     /**
-     * Compile our human-friendly DSL to a safe regex:
-     * - {id} or :id   -> single segment ([^/]+)
-     * - *              -> single segment wildcard ([^/]+)
-     * - ** (only at end or segment) -> multi-segment (.*)
-     * - Path always anchors: ^...$
+     * Compile our DSL to a safe anchored regex.
+     *
+     * DSL tokens:
+     *  - {id} or :id -> single segment wildcard ([^/]+)
+     *  - *          -> single segment wildcard ([^/]+)
+     *  - **         -> multi segment wildcard (.*) (can appear as its own segment or at end)
+     *
+     * Ensures literals are escaped (preg_quote) so dots etc. don't become regex operators.
      */
-    public static function compilePathDsl(?string $dsl): ?string
+    public static function compilePathDslToRegex(?string $dsl): ?string
     {
         if (!$dsl) return null;
 
         $p = trim($dsl);
+        if ($p === '') return null;
 
-        // Ensure leading slash
-        if ($p === '' || $p[0] !== '/') {
+        if ($p[0] !== '/') {
             $p = '/' . $p;
         }
 
-        // Escape regex special chars except our tokens { }, :, * and /
-        // We'll replace tokens first, then escape remaining chars.
-        $out = $p;
+        // Split into segments, compile each
+        $segments = explode('/', ltrim($p, '/'));
 
-        // Replace {param} and :param with single-segment wildcard
-        $out = preg_replace('/\{[^\/]+\}/', '[^/]+', $out);
-        $out = preg_replace('/:[A-Za-z_][A-Za-z0-9_]*/', '[^/]+', $out);
+        $compiled = [];
+        foreach ($segments as $seg) {
+            if ($seg === '') continue;
 
-        // Replace ** with .*
-        // Support ** at segment or end; if someone writes /a/**/b we still treat ** as .*
-        $out = str_replace('**', '.*', $out);
+            if ($seg === '**') {
+                $compiled[] = '.*';
+                continue;
+            }
 
-        // Replace single * with single segment wildcard
-        // To avoid conflict with previous ** handling, there should be no ** left here.
-        $out = preg_replace('/\*/', '[^/]+', $out);
+            // Replace tokens inside segment safely.
+            // Handle full-segment wildcards first:
+            if ($seg === '*') {
+                $compiled[] = '[^/]+';
+                continue;
+            }
 
-        // Now escape leftover regex delimiters safely (we use # as delimiter)
-        // We've already converted the tokens we care about; escape dots etc. that may exist.
-        // Replace '.' not introduced by us (rare) — safe to escape all dots that aren't in character classes.
-        // Simpler approach: escape # delimiter only.
-        $out = str_replace('#', '\#', $out);
+            // If segment includes {param} or :param, treat those parts as wildcards.
+            // We'll parse piecewise:
+            $pattern = $seg;
 
-        // Anchor
-        $regex = '#^' . $out . '$#';
+            // Convert {param} to placeholder token
+            $pattern = preg_replace('/\{[^\/]+\}/', '__SEG_WILD__', $pattern);
+            $pattern = preg_replace('/:[A-Za-z_][A-Za-z0-9_]*/', '__SEG_WILD__', $pattern);
 
-        return $regex;
+            // Convert any remaining single * inside segment to wildcard
+            $pattern = str_replace('*', '__SEG_WILD__', $pattern);
+
+            // Now escape the remaining literal text
+            $parts = explode('__SEG_WILD__', $pattern);
+
+            $rebuilt = '';
+            $count = count($parts);
+            for ($i = 0; $i < $count; $i++) {
+                $rebuilt .= preg_quote($parts[$i], '#');
+                if ($i !== $count - 1) {
+                    $rebuilt .= '[^/]+';
+                }
+            }
+
+            $compiled[] = $rebuilt;
+        }
+
+        $regexBody = '/' . implode('/', $compiled);
+        return '#^' . $regexBody . '$#';
     }
 }

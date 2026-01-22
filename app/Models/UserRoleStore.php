@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 class UserRoleStore extends Pivot
 {
     protected $table = 'user_role_store';
+    public $incrementing = false;
 
     protected $fillable = [
         'user_id',
         'role_id',
-        'store_id', // numeric FK to stores.id
+        'store_id',
         'metadata',
         'is_active',
     ];

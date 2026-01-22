@@ -46,7 +46,7 @@ class Role extends SpatieRole
 
     public function getAllLowerRolesForStore(int $storeId, array &$visited = []): \Illuminate\Support\Collection
     {
-        if (in_array($this->id, $visited)) {
+        if (in_array($this->id, $visited, true)) {
             return collect();
         }
 

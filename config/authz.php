@@ -6,4 +6,6 @@ return [
 
     // Super roles that always allow (optional)
     'super_roles' => ['super-admin'],
+
+    'decision_cache_seconds' => 20,
 ];
