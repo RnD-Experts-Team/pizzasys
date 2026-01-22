@@ -19,16 +19,16 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissions = [
             // User Management Permissions
             'manage users',
-            
+
             // Role Management Permissions  
             'manage roles',
-            
+
             // Permission Management Permissions
             'manage permissions',
-            
+
             // Service Client Management Permissions
             'manage service clients',
-            
+
             // Authorization Rules Management Permissions
             'manage auth rules',
 
@@ -37,6 +37,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage user role assignments',
 
             'manage role hierarchy',
+
+            'manager entities and categories of qa'
         ];
 
         foreach ($permissions as $permission) {
@@ -45,7 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Create the super-admin role
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
-
+        Role::firstOrCreate(['name' => 'qa_auditor']);
         // Give super-admin all permissions
         $superAdmin->givePermissionTo(Permission::all());
 
@@ -58,7 +60,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'email_verified_at' => now(), // Already verified
             ]
         );
-        
+
         // Assign super-admin role
         $superAdminUser->assignRole($superAdmin);
 
