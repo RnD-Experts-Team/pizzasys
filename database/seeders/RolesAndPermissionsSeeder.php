@@ -47,7 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Create the super-admin role
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
-        Role::firstOrCreate(['name' => 'qa_auditor']);
+        Role::firstOrCreate(['name' => 'qa-auditor']);
         // Give super-admin all permissions
         $superAdmin->givePermissionTo(Permission::all());
 
