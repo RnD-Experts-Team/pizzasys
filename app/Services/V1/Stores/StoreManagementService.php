@@ -72,14 +72,29 @@ class StoreManagementService
 
             $storePk = (int) $store->id;
 
+            // Snapshot BEFORE update
             $old = $store->replicate()->toArray();
 
-            $store->update($data);
+            // Only allow fields you actually want to track/update
+            $updateData = [];
+            foreach (['name', 'metadata', 'is_active'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $updateData[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($updateData)) {
+                $store->update($updateData);
+            }
+
             $store = $store->fresh();
+
+            // Snapshot AFTER update
+            $new = $store->toArray();
 
             $changed = ModelChangeSet::fromArrays(
                 $old,
-                $store->toArray(),
+                $new,
                 ['name', 'metadata', 'is_active']
             );
 
@@ -94,6 +109,7 @@ class StoreManagementService
             return $store;
         });
     }
+
 
     public function deleteStore(Store $store, ?Request $request = null): bool
     {

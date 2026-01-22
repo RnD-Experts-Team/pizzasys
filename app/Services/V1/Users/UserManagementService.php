@@ -245,25 +245,26 @@ class UserManagementService
     {
         return DB::transaction(function () use ($user, $data, $request) {
 
+            // Snapshot BEFORE updates (this is the reliable "from" state)
+            $old = $user->replicate()->toArray();
+
             $updateData = [];
 
-            if (isset($data['name'])) {
+            if (array_key_exists('name', $data)) {
                 $updateData['name'] = $data['name'];
             }
 
-            if (isset($data['email'])) {
+            if (array_key_exists('email', $data)) {
                 $updateData['email'] = $data['email'];
             }
 
-            if (isset($data['password'])) {
+            if (!empty($data['password'] ?? null)) {
                 $updateData['password'] = Hash::make($data['password']);
             }
 
             if (!empty($updateData)) {
                 $user->update($updateData);
             }
-
-            $fieldChanges = ModelChangeSet::fields($user, ['name', 'email', 'password', 'email_verified_at']);
 
             // Roles sync => publish role.sync DELTA
             if (isset($data['roles'])) {
@@ -293,7 +294,17 @@ class UserManagementService
                 ], $request);
             }
 
-            // If there were user field changes, publish only changes
+            // Snapshot AFTER updates (this is the reliable "to" state)
+            $fresh = $user->fresh();
+            $new = $fresh->toArray();
+
+            // Compute changed fields from snapshots (reliable from/to)
+            $fieldChanges = ModelChangeSet::fromArrays(
+                $old,
+                $new,
+                ['name', 'email', 'email_verified_at'] // DO NOT include password in events
+            );
+
             if (!empty($fieldChanges)) {
                 $this->recordEvent('auth.v1.user.updated', [
                     'user_id' => $user->id,
@@ -301,9 +312,10 @@ class UserManagementService
                 ], $request);
             }
 
-            return $user->fresh()->getWithRolesAndPermissions();
+            return $fresh->getWithRolesAndPermissions();
         });
     }
+
 
     public function deleteUser(User $user, ?Request $request = null): bool
     {

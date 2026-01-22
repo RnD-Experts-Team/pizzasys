@@ -22,7 +22,7 @@ class ModelChangeSet
             if ($from !== $to) {
                 $changes[$field] = [
                     'from' => $from,
-                    'to' => $to,
+                    'to'   => $to,
                 ];
             }
         }
@@ -31,8 +31,18 @@ class ModelChangeSet
     }
 
     /**
-     * If you still want the "fields($model, ...)" style, keep it too.
-     * (Optional)
+     * NOTE:
+     * Using wasChanged()+getOriginal() AFTER save can produce incorrect "from/to"
+     * because Eloquent syncs originals after successful persistence.
+     *
+     * Keep this method only if you call it in the same request lifecycle
+     * where the model still has its pre-save originals available.
+     *
+     * For event publishing, prefer snapshot compare:
+     *  - $old = $model->replicate()->toArray()
+     *  - persist changes
+     *  - $new = $model->fresh()->toArray()
+     *  - fromArrays($old, $new, ...)
      */
     public static function fields($model, array $allowFields): array
     {
@@ -42,7 +52,7 @@ class ModelChangeSet
             if ($model->wasChanged($field)) {
                 $changes[$field] = [
                     'from' => $model->getOriginal($field),
-                    'to' => $model->getAttribute($field),
+                    'to'   => $model->getAttribute($field),
                 ];
             }
         }
