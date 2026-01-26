@@ -1,0 +1,3088 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "LC Portal API",
+        "description": "LC Portal API v1",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://api.lcportal.cloud/api/v1",
+            "description": "Production"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Authentication & identity"
+        },
+        {
+            "name": "Users",
+            "description": "User management & access control"
+        },
+        {
+            "name": "Roles",
+            "description": "Role management and role-permission assignments"
+        },
+        {
+            "name": "Permissions",
+            "description": "Permission management"
+        },
+        {
+            "name": "Service Clients",
+            "description": "Service-to-service client management"
+        },
+        {
+            "name": "Authorization Rules",
+            "description": "Dynamic authorization rule engine management"
+        },
+        {
+            "name": "Stores",
+            "description": "Store management and store-scoped access"
+        },
+        {
+            "name": "User Role Store Assignments",
+            "description": "Assign, remove, toggle, and query user role assignments per store"
+        },
+        {
+            "name": "Role Hierarchy",
+            "description": "Manage hierarchical role relationships per store"
+        }
+    ],
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/forgot-password": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Send password reset OTP",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP sent",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to send OTP",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/reset-otp-verify": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Verify reset OTP",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyOtpRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP valid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid or expired OTP",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OtpErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/reset-password": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Reset password",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired OTP",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/refresh-token": {
+            "post": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Refresh token",
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RefreshTokenResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/logout": {
+            "post": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "Logged out",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/me": {
+            "get": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Get authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": ["Users"],
+                "summary": "List users",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated users list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Users"],
+                "summary": "Create user",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/users/{user}": {
+            "get": {
+                "tags": ["Users"],
+                "summary": "Get user details",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Users"],
+                "summary": "Update user",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Users"],
+                "summary": "Delete user",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user}/roles/assign": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Assign roles to user",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignRolesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Roles assigned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/users/{user}/roles/remove": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Remove roles from user",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignRolesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Roles removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/users/{user}/roles/sync": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Sync user roles",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignRolesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Roles synced",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "tags": ["Roles"],
+                "summary": "List roles",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated roles list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Roles"],
+                "summary": "Create role",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Role created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{role}": {
+            "get": {
+                "tags": ["Roles"],
+                "summary": "Get role",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Roles"],
+                "summary": "Update role",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Role updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Roles"],
+                "summary": "Delete role",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{role}/permissions/assign": {
+            "post": {
+                "tags": ["Roles"],
+                "summary": "Assign permissions to role",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignPermissionsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Permissions assigned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/roles/{role}/permissions/revoke": {
+            "post": {
+                "tags": ["Roles"],
+                "summary": "Revoke permissions from role",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignPermissionsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Permissions revoked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/roles/{role}/permissions/sync": {
+            "post": {
+                "tags": ["Roles"],
+                "summary": "Sync role permissions",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignPermissionsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Permissions synced",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions": {
+            "get": {
+                "tags": ["Permissions"],
+                "summary": "List permissions",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated permissions list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PermissionIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Permissions"],
+                "summary": "Create permission",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePermissionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Permission created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PermissionSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions/{permission}": {
+            "get": {
+                "tags": ["Permissions"],
+                "summary": "Get permission",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "permission",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Permission details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PermissionSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Permissions"],
+                "summary": "Update permission",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "permission",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePermissionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Permission updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PermissionSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Permissions"],
+                "summary": "Delete permission",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "permission",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Permission deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/service-clients": {
+            "get": {
+                "tags": ["Service Clients"],
+                "summary": "List service clients",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated service clients",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Service Clients"],
+                "summary": "Create service client",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateServiceClientRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Service client created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientWithTokenResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/service-clients/{serviceClient}": {
+            "get": {
+                "tags": ["Service Clients"],
+                "summary": "Get service client",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "serviceClient",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service client details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Service Clients"],
+                "summary": "Update service client",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "serviceClient",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateServiceClientRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Service client updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Service Clients"],
+                "summary": "Delete service client",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "serviceClient",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service client deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/service-clients/{serviceClient}/rotate-token": {
+            "post": {
+                "tags": ["Service Clients"],
+                "summary": "Rotate service client token",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "serviceClient",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RotateServiceTokenRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token rotated (token shown once)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientWithTokenResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/service-clients/{serviceClient}/toggle-status": {
+            "post": {
+                "tags": ["Service Clients"],
+                "summary": "Toggle service client active status",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "serviceClient",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service client status toggled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServiceClientSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth-rules": {
+            "get": {
+                "tags": ["Authorization Rules"],
+                "summary": "List authorization rules",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "service",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated authorization rules",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Authorization Rules"],
+                "summary": "Create authorization rule",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateAuthRuleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Authorization rule created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth-rules/{authRule}": {
+            "get": {
+                "tags": ["Authorization Rules"],
+                "summary": "Get authorization rule",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "authRule",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authorization rule details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Authorization Rules"],
+                "summary": "Update authorization rule",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "authRule",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAuthRuleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authorization rule updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Authorization Rules"],
+                "summary": "Delete authorization rule",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "authRule",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authorization rule deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth-rules/{authRule}/toggle-status": {
+            "post": {
+                "tags": ["Authorization Rules"],
+                "summary": "Toggle authorization rule status",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "authRule",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authorization rule status toggled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth-rules/services": {
+            "get": {
+                "tags": ["Authorization Rules"],
+                "summary": "List distinct services",
+                "security": [{ "bearerAuth": [] }],
+                "responses": {
+                    "200": {
+                        "description": "Service list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": { "type": "boolean" },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "services": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth-rules/test": {
+            "post": {
+                "tags": ["Authorization Rules"],
+                "summary": "Test authorization rule DSL",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["path_dsl", "test_path"],
+                                "properties": {
+                                    "path_dsl": { "type": "string" },
+                                    "test_path": { "type": "string" }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "DSL test result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthRuleTestResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stores": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "List stores",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated stores list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "post": {
+                "tags": ["Stores"],
+                "summary": "Create store",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateStoreRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Store created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{store}": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "Get store",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "put": {
+                "tags": ["Stores"],
+                "summary": "Update store",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateStoreRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Store updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "delete": {
+                "tags": ["Stores"],
+                "summary": "Delete store",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{store}/users": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "Get store users",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "role_id",
+                        "in": "query",
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store users list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreUsersResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{store}/roles": {
+            "get": {
+                "tags": ["Stores"],
+                "summary": "Get store roles",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store roles list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StoreRolesResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user-role-store/assign": {
+            "post": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Assign role to user in store",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AssignUserRoleStoreRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Assignment created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserRoleStoreSingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user-role-store/remove": {
+            "post": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Remove user role store assignment",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignment removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Assignment not found"
+                    }
+                }
+            }
+        },
+        "/user-role-store/toggle": {
+            "post": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Toggle assignment active status",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignment toggled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Assignment not found"
+                    }
+                }
+            }
+        },
+        "/user-role-store/bulk-assign": {
+            "post": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Bulk assign roles to user across stores",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BulkAssignUserRoleStoreRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Bulk assignments completed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserRoleStoreBulkResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user-role-store/user-assignments": {
+            "get": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Get user role store assignments",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User assignments list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserRoleStoreListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user-role-store/store-assignments": {
+            "get": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Get store role assignments",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    },
+                    {
+                        "name": "role_id",
+                        "in": "query",
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store assignments list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserRoleStoreListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/role-hierarchy": {
+            "post": {
+                "tags": ["Role Hierarchy"],
+                "summary": "Create role hierarchy relationship",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateRoleHierarchyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Hierarchy created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleHierarchySingleResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/role-hierarchy/remove": {
+            "post": {
+                "tags": ["Role Hierarchy"],
+                "summary": "Remove role hierarchy relationship",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Hierarchy removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Hierarchy not found"
+                    }
+                }
+            }
+        },
+        "/role-hierarchy/store": {
+            "get": {
+                "tags": ["Role Hierarchy"],
+                "summary": "Get store role hierarchy list",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Store hierarchies",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleHierarchyListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/role-hierarchy/tree": {
+            "get": {
+                "tags": ["Role Hierarchy"],
+                "summary": "Get role hierarchy tree",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Hierarchy tree",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleHierarchyTreeResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/role-hierarchy/validate": {
+            "post": {
+                "tags": ["Role Hierarchy"],
+                "summary": "Validate role hierarchy relationship",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Validation result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RoleHierarchyValidationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+
+        "schemas": {
+            "LoginRequest": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                    "email": { "type": "string", "format": "email" },
+                    "password": { "type": "string" },
+                    "client_type": {
+                        "type": "string",
+                        "enum": ["web", "mobile"]
+                    },
+                    "device": {
+                        "type": "object",
+                        "properties": {
+                            "device_id": { "type": "string" },
+                            "platform": {
+                                "type": "string",
+                                "enum": ["ios", "android", "web"]
+                            },
+                            "model": { "type": "string" },
+                            "os_version": { "type": "string" },
+                            "app_version": { "type": "string" }
+                        }
+                    },
+                    "fcm_token": { "type": "string" }
+                }
+            },
+
+            "LoginResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": { "type": "string" },
+                            "token_type": { "type": "string" },
+                            "user": { "$ref": "#/components/schemas/FullUser" }
+                        }
+                    }
+                }
+            },
+
+            "MeResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "user": { "$ref": "#/components/schemas/FullUser" }
+                        }
+                    }
+                }
+            },
+
+            "FullUser": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "email_verified_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+
+                    "global_roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissions"
+                        }
+                    },
+
+                    "global_permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+
+                    "all_permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+
+                    "stores": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/UserStoreContext"
+                        }
+                    },
+
+                    "summary": {
+                        "type": "object",
+                        "properties": {
+                            "total_stores": { "type": "integer" },
+                            "total_roles": { "type": "integer" },
+                            "total_permissions": { "type": "integer" },
+                            "manageable_users_count": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+
+            "UserStoreContext": {
+                "type": "object",
+                "properties": {
+                    "store": { "$ref": "#/components/schemas/Store" },
+                    "direct_roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissions"
+                        }
+                    },
+                    "effective_roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EffectiveRole"
+                        }
+                    },
+                    "effective_permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+                    "hierarchy_info": { "type": "array" },
+                    "manageable_users": { "type": "array" },
+                    "assignment_metadata": { "type": "array" }
+                }
+            },
+
+            "RoleWithPermissions": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "guard_name": { "type": "string" },
+                    "permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    }
+                }
+            },
+
+            "EffectiveRole": {
+                "allOf": [
+                    { "$ref": "#/components/schemas/RoleWithPermissions" },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "is_inherited": { "type": "boolean" }
+                        }
+                    }
+                ]
+            },
+
+            "Permission": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "guard_name": { "type": "string" }
+                }
+            },
+
+            "Store": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "store_id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "metadata": { "type": ["object", "null"] },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+
+            "ForgotPasswordRequest": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                    "email": { "type": "string", "format": "email" }
+                }
+            },
+
+            "VerifyOtpRequest": {
+                "type": "object",
+                "required": ["email", "otp"],
+                "properties": {
+                    "email": { "type": "string", "format": "email" },
+                    "otp": { "type": "string", "minLength": 6, "maxLength": 6 }
+                }
+            },
+
+            "ResetPasswordRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password",
+                    "password_confirmation",
+                    "otp"
+                ],
+                "properties": {
+                    "email": { "type": "string", "format": "email" },
+                    "password": { "type": "string" },
+                    "password_confirmation": { "type": "string" },
+                    "otp": { "type": "string" }
+                }
+            },
+
+            "RefreshTokenResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": { "type": "string" },
+                            "token_type": { "type": "string" }
+                        }
+                    }
+                }
+            },
+
+            "BasicSuccessResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                }
+            },
+
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                }
+            },
+
+            "OtpErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "message": { "type": "string" }
+                }
+            },
+
+            "ValidationErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "message": { "type": "string" },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    }
+                }
+            },
+            "UserIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/UserListItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+
+            "UserListItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "email_verified_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissionsSimple"
+                        }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PermissionSimple"
+                        }
+                    },
+                    "stores": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/UserStoreSimple"
+                        }
+                    }
+                }
+            },
+
+            "UserSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "user": {
+                                "$ref": "#/components/schemas/UserListItem"
+                            }
+                        }
+                    }
+                }
+            },
+
+            "CreateUserRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "email",
+                    "password",
+                    "password_confirmation"
+                ],
+                "properties": {
+                    "name": { "type": "string" },
+                    "email": { "type": "string", "format": "email" },
+                    "password": { "type": "string" },
+                    "password_confirmation": { "type": "string" },
+                    "roles": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+
+            "UpdateUserRequest": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "email": { "type": "string", "format": "email" },
+                    "password": { "type": "string" },
+                    "password_confirmation": { "type": "string" },
+                    "roles": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+
+            "AssignRolesRequest": {
+                "type": "object",
+                "required": ["roles"],
+                "properties": {
+                    "roles": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+
+            "AssignPermissionsRequest": {
+                "type": "object",
+                "required": ["permissions"],
+                "properties": {
+                    "permissions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+
+            "RoleWithPermissionsSimple": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PermissionSimple"
+                        }
+                    }
+                }
+            },
+
+            "PermissionSimple": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" }
+                }
+            },
+
+            "UserStoreSimple": {
+                "type": "object",
+                "properties": {
+                    "store": {
+                        "type": "object",
+                        "properties": {
+                            "id": { "type": "integer" },
+                            "name": { "type": "string" }
+                        }
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissionsSimple"
+                        }
+                    }
+                }
+            },
+            "RoleIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RoleItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+            "RoleItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "guard_name": { "type": "string" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PermissionSimple"
+                        }
+                    }
+                }
+            },
+            "RoleSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "role": { "$ref": "#/components/schemas/RoleItem" }
+                        }
+                    }
+                }
+            },
+            "CreateRoleRequest": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                    "name": { "type": "string" },
+                    "guard_name": {
+                        "type": "string",
+                        "enum": ["web", "api"]
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+
+            "UpdateRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "permissions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            },
+            "PermissionIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/PermissionItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+            "PermissionItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "guard_name": { "type": "string" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "roles": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/RoleSimple" }
+                    }
+                }
+            },
+            "PermissionSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "permission": {
+                                "$ref": "#/components/schemas/PermissionItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreatePermissionRequest": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                    "name": { "type": "string" },
+                    "guard_name": {
+                        "type": "string",
+                        "enum": ["web", "api"]
+                    }
+                }
+            },
+
+            "UpdatePermissionRequest": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                    "name": { "type": "string" }
+                }
+            },
+            "RoleSimple": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "guard_name": { "type": "string" }
+                }
+            },
+            "ServiceClientItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "is_active": { "type": "boolean" },
+                    "expires_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "notes": { "type": ["string", "null"] },
+                    "last_used_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "use_count": { "type": "integer" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                }
+            },
+            "ServiceClientIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ServiceClientItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+            "ServiceClientSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "service": {
+                                "$ref": "#/components/schemas/ServiceClientItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "ServiceClientWithTokenResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "service": {
+                                "$ref": "#/components/schemas/ServiceClientItem"
+                            },
+                            "token": {
+                                "type": "string",
+                                "description": "Plain token, shown only once"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreateServiceClientRequest": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                    "name": { "type": "string" },
+                    "is_active": { "type": "boolean" },
+                    "expires_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "notes": { "type": ["string", "null"] }
+                }
+            },
+
+            "UpdateServiceClientRequest": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "is_active": { "type": "boolean" },
+                    "expires_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "notes": { "type": ["string", "null"] }
+                }
+            },
+
+            "RotateServiceTokenRequest": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": ["string", "null"],
+                        "format": "date-time"
+                    },
+                    "never_expires": { "type": "boolean" },
+                    "notes": { "type": ["string", "null"] }
+                }
+            },
+            "AuthRuleItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "service": { "type": "string" },
+                    "method": { "type": "string" },
+                    "route_name": { "type": ["string", "null"] },
+                    "path_dsl": { "type": ["string", "null"] },
+                    "path_regex": { "type": ["string", "null"] },
+                    "roles_any": {
+                        "type": ["array", "null"],
+                        "items": { "type": "string" }
+                    },
+                    "permissions_any": {
+                        "type": ["array", "null"],
+                        "items": { "type": "string" }
+                    },
+                    "permissions_all": {
+                        "type": ["array", "null"],
+                        "items": { "type": "string" }
+                    },
+                    "priority": { "type": "integer" },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                }
+            },
+            "AuthRuleIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/AuthRuleItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+            "AuthRuleSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "$ref": "#/components/schemas/AuthRuleItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreateAuthRuleRequest": {
+                "type": "object",
+                "required": ["service", "method"],
+                "properties": {
+                    "service": { "type": "string" },
+                    "method": {
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ANY"]
+                    },
+                    "path_dsl": { "type": ["string", "null"] },
+                    "route_name": { "type": ["string", "null"] },
+                    "roles_any": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions_any": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions_all": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "priority": { "type": "integer" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+
+            "UpdateAuthRuleRequest": {
+                "type": "object",
+                "properties": {
+                    "service": { "type": "string" },
+                    "method": {
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ANY"]
+                    },
+                    "path_dsl": { "type": ["string", "null"] },
+                    "route_name": { "type": ["string", "null"] },
+                    "roles_any": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions_any": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "permissions_all": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "priority": { "type": "integer" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+            "AuthRuleTestResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "path_dsl": { "type": "string" },
+                            "path_regex": { "type": ["string", "null"] },
+                            "test_path": { "type": "string" },
+                            "matches": { "type": "boolean" },
+                            "compiled_successfully": { "type": "boolean" }
+                        }
+                    }
+                }
+            },
+            "StoreItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "store_id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "metadata": { "type": ["object", "null"] },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                }
+            },
+            "StoreIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/StoreItem"
+                                }
+                            },
+                            "current_page": { "type": "integer" },
+                            "last_page": { "type": "integer" },
+                            "per_page": { "type": "integer" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+            },
+            "StoreSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "store": {
+                                "$ref": "#/components/schemas/StoreItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "CreateStoreRequest": {
+                "type": "object",
+                "required": ["store_id", "name"],
+                "properties": {
+                    "store_id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "metadata": { "type": "object" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+
+            "UpdateStoreRequest": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "metadata": { "type": "object" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+            "StoreUsersResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "users": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/UserItem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "StoreRolesResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "roles": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RoleItem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "UserRoleStoreItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "user_id": { "type": "integer" },
+                    "role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" },
+                    "metadata": { "type": ["object", "null"] },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "user": { "$ref": "#/components/schemas/UserItem" },
+                    "role": { "$ref": "#/components/schemas/RoleItem" },
+                    "store": { "$ref": "#/components/schemas/StoreItem" }
+                }
+            },
+            "AssignUserRoleStoreRequest": {
+                "type": "object",
+                "required": ["user_id", "role_id", "store_id"],
+                "properties": {
+                    "user_id": { "type": "integer" },
+                    "role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" },
+                    "metadata": { "type": "object" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+
+            "UserRoleStoreIdentifierRequest": {
+                "type": "object",
+                "required": ["user_id", "role_id", "store_id"],
+                "properties": {
+                    "user_id": { "type": "integer" },
+                    "role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" }
+                }
+            },
+
+            "BulkAssignUserRoleStoreRequest": {
+                "type": "object",
+                "required": ["user_id", "assignments"],
+                "properties": {
+                    "user_id": { "type": "integer" },
+                    "assignments": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["role_id", "store_id"],
+                            "properties": {
+                                "role_id": { "type": "integer" },
+                                "store_id": { "type": "integer" },
+                                "metadata": { "type": "object" },
+                                "is_active": { "type": "boolean" }
+                            }
+                        }
+                    }
+                }
+            },
+            "UserRoleStoreSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "assignment": {
+                                "$ref": "#/components/schemas/UserRoleStoreItem"
+                            }
+                        }
+                    }
+                }
+            },
+
+            "UserRoleStoreListResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "assignments": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/UserRoleStoreItem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "UserRoleStoreBulkResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "assignments": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/UserRoleStoreItem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RoleHierarchyItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "higher_role_id": { "type": "integer" },
+                    "lower_role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" },
+                    "metadata": { "type": ["object", "null"] },
+                    "is_active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "higher_role": { "$ref": "#/components/schemas/RoleItem" },
+                    "lower_role": { "$ref": "#/components/schemas/RoleItem" },
+                    "store": { "$ref": "#/components/schemas/StoreItem" }
+                }
+            },
+            "CreateRoleHierarchyRequest": {
+                "type": "object",
+                "required": ["higher_role_id", "lower_role_id", "store_id"],
+                "properties": {
+                    "higher_role_id": { "type": "integer" },
+                    "lower_role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" },
+                    "metadata": { "type": "object" },
+                    "is_active": { "type": "boolean" }
+                }
+            },
+
+            "RoleHierarchyIdentifierRequest": {
+                "type": "object",
+                "required": ["higher_role_id", "lower_role_id", "store_id"],
+                "properties": {
+                    "higher_role_id": { "type": "integer" },
+                    "lower_role_id": { "type": "integer" },
+                    "store_id": { "type": "integer" }
+                }
+            },
+            "RoleHierarchySingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "hierarchy": {
+                                "$ref": "#/components/schemas/RoleHierarchyItem"
+                            }
+                        }
+                    }
+                }
+            },
+
+            "RoleHierarchyListResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "hierarchies": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RoleHierarchyItem"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RoleHierarchyTreeNode": {
+                "type": "object",
+                "properties": {
+                    "role": { "$ref": "#/components/schemas/RoleItem" },
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleHierarchyTreeNode"
+                        }
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PermissionItem"
+                        }
+                    },
+                    "circular_detected": { "type": "boolean" }
+                }
+            },
+            "RoleHierarchyTreeResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "hierarchy_tree": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/RoleHierarchyTreeNode"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RoleHierarchyValidationResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "valid": { "type": "boolean" },
+                    "errors": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            }
+        }
+    }
+}
