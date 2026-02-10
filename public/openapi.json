@@ -2348,7 +2348,8 @@
                         "type": "object",
                         "properties": {
                             "id": { "type": "integer" },
-                            "name": { "type": "string" }
+                            "name": { "type": "string" },
+                            "store_id": { "type": "string" }
                         }
                     },
                     "roles": {
