@@ -105,7 +105,8 @@ class UserManagementService
             $stores[] = [
                 'store' => [
                     'id' => $store->id,
-                    'name' => $store->name
+                    'name' => $store->name,
+                    'store_id' => $store->store_id,
                 ],
                 'roles' => $roles
             ];
