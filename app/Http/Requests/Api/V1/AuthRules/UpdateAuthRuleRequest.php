@@ -26,6 +26,12 @@ class UpdateAuthRuleRequest extends FormRequest
             'permissions_all.*' => 'string|exists:permissions,name',
             'priority' => 'sometimes|integer|min:1|max:1000',
             'is_active' => 'sometimes|boolean',
+            'store_scope_mode' => 'sometimes|string|in:none,scoped,all_stores',
+            'store_id_sources' => 'sometimes|nullable|array',
+            'store_match_policy' => 'sometimes|string|in:all,any',
+            'store_allows_empty' => 'sometimes|boolean',
+            'store_all_access_roles_any' => 'sometimes|nullable|array',
+            'store_all_access_permissions_any' => 'sometimes|nullable|array',
         ];
     }
 
@@ -38,6 +44,8 @@ class UpdateAuthRuleRequest extends FormRequest
             'roles_any.*.exists' => 'One or more specified roles do not exist.',
             'permissions_any.*.exists' => 'One or more specified permissions do not exist.',
             'permissions_all.*.exists' => 'One or more specified permissions do not exist.',
+            'store_scope_mode.in' => 'The store_scope_mode must be one of: none, scoped, all_stores.',
+            'store_match_policy.in' => 'The store_match_policy must be one of: all, any.',
         ];
     }
 
@@ -50,7 +58,7 @@ class UpdateAuthRuleRequest extends FormRequest
             // Ensure at least one target is provided
             if (!$this->path_dsl && !$this->route_name) {
                 $validator->errors()->add(
-                    'target', 
+                    'target',
                     'Either path_dsl or route_name must be provided.'
                 );
             }
@@ -58,7 +66,7 @@ class UpdateAuthRuleRequest extends FormRequest
             // Ensure both targets are not provided simultaneously
             if ($this->path_dsl && $this->route_name) {
                 $validator->errors()->add(
-                    'target', 
+                    'target',
                     'Cannot specify both path_dsl and route_name. Choose one.'
                 );
             }
@@ -70,7 +78,7 @@ class UpdateAuthRuleRequest extends FormRequest
 
             if (!$hasRoles && !$hasPermsAny && !$hasPermsAll) {
                 $validator->errors()->add(
-                    'authorization', 
+                    'authorization',
                     'At least one authorization requirement must be specified (roles_any, permissions_any, or permissions_all).'
                 );
             }

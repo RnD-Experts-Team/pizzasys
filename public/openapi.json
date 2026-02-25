@@ -2612,33 +2612,6 @@
                     "notes": { "type": ["string", "null"] }
                 }
             },
-            "AuthRuleItem": {
-                "type": "object",
-                "properties": {
-                    "id": { "type": "integer" },
-                    "service": { "type": "string" },
-                    "method": { "type": "string" },
-                    "route_name": { "type": ["string", "null"] },
-                    "path_dsl": { "type": ["string", "null"] },
-                    "path_regex": { "type": ["string", "null"] },
-                    "roles_any": {
-                        "type": ["array", "null"],
-                        "items": { "type": "string" }
-                    },
-                    "permissions_any": {
-                        "type": ["array", "null"],
-                        "items": { "type": "string" }
-                    },
-                    "permissions_all": {
-                        "type": ["array", "null"],
-                        "items": { "type": "string" }
-                    },
-                    "priority": { "type": "integer" },
-                    "is_active": { "type": "boolean" },
-                    "created_at": { "type": "string", "format": "date-time" },
-                    "updated_at": { "type": "string", "format": "date-time" }
-                }
-            },
             "AuthRuleIndexResponse": {
                 "type": "object",
                 "properties": {
@@ -2646,14 +2619,9 @@
                         "type": "boolean"
                     },
                     "data": {
-                        "type": "object",
-                        "properties": {
-                            "rules": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/components/schemas/AuthRule"
-                                }
-                            }
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AuthRule"
                         }
                     }
                 }
@@ -2666,6 +2634,31 @@
                     },
                     "data": {
                         "$ref": "#/components/schemas/AuthRule"
+                    }
+                }
+            },
+            "AuthRuleTestResponse": {
+                "type": "object",
+                "properties": {
+                    "path_dsl": {
+                        "type": "string",
+                        "description": "The original path DSL used."
+                    },
+                    "path_regex": {
+                        "type": "string",
+                        "description": "The compiled regular expression for the path DSL."
+                    },
+                    "test_path": {
+                        "type": "string",
+                        "description": "The test path used to check the DSL."
+                    },
+                    "matches": {
+                        "type": "boolean",
+                        "description": "Indicates whether the test path matches the path DSL."
+                    },
+                    "compiled_successfully": {
+                        "type": "boolean",
+                        "description": "Indicates whether the path DSL was compiled successfully into a regex."
                     }
                 }
             },
@@ -2682,13 +2675,12 @@
                         "type": "string"
                     },
                     "path_dsl": {
-                        "type": "string"
-                    },
-                    "path_regex": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The path DSL of the authorization rule, supporting wildcards such as '*' and '**'."
                     },
                     "route_name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The route name, used if path_dsl is not provided."
                     },
                     "roles_any": {
                         "type": "array",
@@ -2708,36 +2700,23 @@
                             "type": "string"
                         }
                     },
+                    "priority": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
                     "store_scope_mode": {
-                        "type": "string",
-                        "enum": ["none", "scoped", "all_stores"]
+                        "type": "string"
                     },
                     "store_id_sources": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "query": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "body": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
+                        "type": "array",
+                        "items": {
+                            "type": "string"
                         }
                     },
                     "store_match_policy": {
-                        "type": "string",
-                        "enum": ["all", "any"]
+                        "type": "string"
                     },
                     "store_allows_empty": {
                         "type": "boolean"
@@ -2753,99 +2732,100 @@
                         "items": {
                             "type": "string"
                         }
-                    },
-                    "is_active": {
-                        "type": "boolean"
-                    },
-                    "priority": {
-                        "type": "integer"
                     }
                 }
             },
             "CreateAuthRuleRequest": {
                 "type": "object",
+                "required": ["service", "method"],
                 "properties": {
                     "service": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The name of the service."
                     },
                     "method": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "GET",
+                            "POST",
+                            "PUT",
+                            "PATCH",
+                            "DELETE",
+                            "ANY"
+                        ],
+                        "description": "The HTTP method (e.g., GET, POST, PUT, DELETE)."
                     },
                     "path_dsl": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The path DSL for the route, using wildcards (* and **). E.g., '/users/*'."
                     },
                     "route_name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The route name (alternative to path_dsl)."
                     },
                     "roles_any": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "description": "List of roles that can access the rule."
                     },
                     "permissions_any": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "description": "List of permissions that can access the rule."
                     },
                     "permissions_all": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "description": "List of permissions that must all be met for access."
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "description": "The priority of the rule."
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Whether the rule is active."
                     },
                     "store_scope_mode": {
                         "type": "string",
-                        "enum": ["none", "scoped", "all_stores"]
+                        "enum": ["none", "scoped", "all_stores"],
+                        "description": "How the rule applies to stores."
                     },
                     "store_id_sources": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "query": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "body": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        }
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Sources for store IDs (e.g., path, query, body)."
                     },
                     "store_match_policy": {
                         "type": "string",
-                        "enum": ["all", "any"]
+                        "enum": ["all", "any"],
+                        "description": "Match policy for stores."
                     },
                     "store_allows_empty": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether empty store IDs are allowed."
                     },
                     "store_all_access_roles_any": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "description": "Roles with access to all stores."
                     },
                     "store_all_access_permissions_any": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
-                    },
-                    "priority": {
-                        "type": "integer"
-                    },
-                    "is_active": {
-                        "type": "boolean"
+                        },
+                        "description": "Permissions with access to all stores."
                     }
                 }
             },
@@ -2856,7 +2836,8 @@
                         "type": "string"
                     },
                     "method": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ANY"]
                     },
                     "path_dsl": {
                         "type": "string"
@@ -2882,36 +2863,23 @@
                             "type": "string"
                         }
                     },
+                    "priority": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
                     "store_scope_mode": {
-                        "type": "string",
-                        "enum": ["none", "scoped", "all_stores"]
+                        "type": "string"
                     },
                     "store_id_sources": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "query": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "body": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
+                        "type": "array",
+                        "items": {
+                            "type": "string"
                         }
                     },
                     "store_match_policy": {
-                        "type": "string",
-                        "enum": ["all", "any"]
+                        "type": "string"
                     },
                     "store_allows_empty": {
                         "type": "boolean"
@@ -2927,12 +2895,6 @@
                         "items": {
                             "type": "string"
                         }
-                    },
-                    "priority": {
-                        "type": "integer"
-                    },
-                    "is_active": {
-                        "type": "boolean"
                     }
                 }
             },
@@ -2947,26 +2909,7 @@
                     }
                 }
             },
-            "AuthRuleTestResponse": {
-                "type": "object",
-                "properties": {
-                    "path_dsl": {
-                        "type": "string"
-                    },
-                    "path_regex": {
-                        "type": "string"
-                    },
-                    "test_path": {
-                        "type": "string"
-                    },
-                    "matches": {
-                        "type": "boolean"
-                    },
-                    "compiled_successfully": {
-                        "type": "boolean"
-                    }
-                }
-            },
+
             "StoreItem": {
                 "type": "object",
                 "properties": {
