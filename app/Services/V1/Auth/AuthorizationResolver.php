@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class AuthorizationResolver
 {
-    /**
-     * @return array [bool authorized, array required_permissions, string granted_by, array meta]
-     */
+
     public function check(
         string $service,
         string $method,
@@ -24,130 +22,142 @@ class AuthorizationResolver
         array $storeContext,
         int $userId
     ): array {
-        $method = strtoupper($method);
-        $cfg = config('authz', []);
-        $cache = Cache::store('redis');
+        // Check super admin roles that bypass all checks
+        $superRoles = (array) config('authz.super_roles', []);
+        $user = User::find($userId);
+        $userRolesGlobal = $user->roles->pluck('name')->toArray();
 
-        // --- versioning for rule changes (you can bump this key whenever rules change) ---
-        $ver = (int) $cache->get('authz:ver', 1);
-
-        // 1) Super role bypass
-        $superRoles = (array) ($cfg['super_roles'] ?? []);
+        // If user has any super roles, allow them without further checks
         if ($this->hasAny($userRolesGlobal, $superRoles)) {
             return [true, [], 'super-role', ['store_ids' => [], 'store_mode' => 'none']];
         }
 
-        // 2) Resolve matched rule (cached rules list)
-        $rules = $this->getRulesCached($cache, $ver, $service, $method);
+        // --- versioning for rule changes (bump version if rules change) ---
+        $ver = (int) Cache::get('authz:ver', 1);
+
+        // Get cached rules for this service and method
+        $rules = $this->getRulesCached($service, $method, $ver);
 
         $matched = null;
+        $storeScopeMode = 'none'; // Default
 
-        // 3) RouteName precedence if provided
+        // 1) Check for routeName match first
         if ($routeName) {
-            foreach ($rules as $r) {
-                if (!empty($r['route_name']) && $r['route_name'] === $routeName) {
-                    $matched = $r;
+            foreach ($rules as $rule) {
+                if ($rule['route_name'] === $routeName) {
+                    $matched = $rule;
+                    $storeScopeMode = $rule['store_scope_mode'] ?? 'none';
                     break;
                 }
             }
         }
 
-        // 4) Path match
+        // 2) If routeName doesn't match, fallback to path match
         if (!$matched) {
-            foreach ($rules as $r) {
-                if (empty($r['path_regex'])) continue;
-                if (@preg_match($r['path_regex'], $path) === 1) {
-                    $matched = $r;
+            foreach ($rules as $rule) {
+                if (!empty($rule['path_regex']) && preg_match($rule['path_regex'], $path)) {
+                    $matched = $rule;
+                    $storeScopeMode = $rule['store_scope_mode'] ?? 'none';
                     break;
                 }
             }
         }
 
+        // If no rule matched, apply fallback logic
         if (!$matched) {
-            $allow = (bool) ($cfg['allow_if_no_rule'] ?? false);
-            return [$allow, [], 'no-rule', ['store_ids' => [], 'store_mode' => 'none']];
+            return [false, [], 'no-rule', ['store_ids' => [], 'store_mode' => 'none']];
         }
 
-        // --- Decision cache key (token-specific caching happens outside here; this is authz-only) ---
-        $ctxKey = $routeName ?: ($method . ' ' . $path);
-        $storeIdsForKey = $this->extractStoreIds($matched, $storeContext);
-        sort($storeIdsForKey);
-        $storeKey = implode(',', $storeIdsForKey);
-
-        $decisionKey = 'authz:decision:v' . $ver
-            . ':' . hash('sha256', $service . '|' . $ctxKey)
-            . ':u' . $userId
-            . ':s' . hash('sha256', $storeKey);
-
-        $cachedDecision = $cache->get($decisionKey);
-        if (is_array($cachedDecision) && isset($cachedDecision['authorized'])) {
-            return [
-                (bool)$cachedDecision['authorized'],
-                (array)($cachedDecision['required_permissions'] ?? []),
-                (string)($cachedDecision['granted_by'] ?? 'cache'),
-                (array)($cachedDecision['meta'] ?? ['store_ids' => $storeIdsForKey, 'store_mode' => ($matched['store_scope_mode'] ?? 'none')]),
-            ];
+        // 3) Evaluate based on store scope mode
+        if ($storeScopeMode === 'none') {
+            // No store scope - use global roles and permissions
+            return $this->evaluateGlobalRolesAndPermissions($userId, $matched, $userRolesGlobal, $userPermsGlobal, $tokenAbilities);
         }
 
-        // 5) Evaluate rule (store-aware)
-        $result = $this->evaluateRule(
-            $matched,
-            $userRolesGlobal,
-            $userPermsGlobal,
-            $tokenAbilities,
-            $storeContext,
-            $userId
-        );
+        // 4) If store-scoped, check user roles and permissions for the specific store
+        $storeIds = $this->extractStoreIdsFromContext($storeContext);
+        if (empty($storeIds)) {
+            return [false, $this->requiredPermsFromRule($matched), 'deny-no-store', ['store_ids' => [], 'store_mode' => 'scoped']];
+        }
 
-        // Cache decision briefly (bounded & safe)
-        $cache->put($decisionKey, [
-            'authorized'           => $result[0],
-            'required_permissions' => $result[1],
-            'granted_by'           => $result[2],
-            'meta'                 => $result[3],
-        ], now()->addSeconds((int)($cfg['decision_cache_seconds'] ?? 20)));
+        // Evaluate permissions based on the specific store
+        $storePermissionsCheck = $this->evaluateStorePermissions($userId, $storeIds, $matched, $userRolesGlobal, $userPermsGlobal, $tokenAbilities);
 
-        return $result;
+        if ($storePermissionsCheck[0]) {
+            return $storePermissionsCheck; // Authorized for specific store
+        }
+
+        return [false, $this->requiredPermsFromRule($matched), 'deny-store', ['store_ids' => $storeIds, 'store_mode' => 'scoped']];
     }
 
-    /**
-     * Cache active rules for service+method with versioning.
-     */
-    private function getRulesCached($cache, int $ver, string $service, string $method): array
+    private function evaluateGlobalRolesAndPermissions(int $userId, array $matchedRule, array $userRolesGlobal, array $userPermsGlobal, array $tokenAbilities)
     {
-        $rulesKey = 'authz:rules:v' . $ver . ':' . hash('sha256', $service . '|' . $method);
+        // Check global roles and permissions
+        $permsAny = (array) $matchedRule['permissions_any'];
+        $permsAll = (array) $matchedRule['permissions_all'];
 
-        return $cache->remember($rulesKey, now()->addSeconds(60), function () use ($service, $method) {
-            $rules = AuthRule::query()
-                ->where('service', $service)
+        if ($this->hasAny($userRolesGlobal, $permsAny) || $this->hasAll($userPermsGlobal, $permsAll)) {
+            return [true, [], 'global-role-permission', ['store_ids' => [], 'store_mode' => 'none']];
+        }
+
+        return [false, $this->requiredPermsFromRule($matchedRule), 'deny-global-permission', ['store_ids' => [], 'store_mode' => 'none']];
+    }
+
+    private function evaluateStorePermissions(
+        int $userId,
+        array $storeIds,
+        array $matchedRule,
+        array $userRolesGlobal,
+        array $userPermsGlobal,
+        array $tokenAbilities
+    ) {
+        $storeRoles = [];
+        foreach ($storeIds as $storeId) {
+            $effectiveRoles = (new User)->getEffectiveRolesForStore($storeId);
+            $storeRoles = $storeRoles->merge($effectiveRoles);
+        }
+
+        // Check store-specific roles and permissions
+        $storePermsAny = (array) $matchedRule['permissions_any'];
+        $storePermsAll = (array) $matchedRule['permissions_all'];
+
+        if ($this->hasAny($storeRoles, $storePermsAny) || $this->hasAll($userPermsGlobal, $storePermsAll)) {
+            return [true, [], 'store-role-permission', ['store_ids' => $storeIds, 'store_mode' => 'scoped']];
+        }
+
+        return [false, $this->requiredPermsFromRule($matchedRule), 'deny-store-permission', ['store_ids' => $storeIds, 'store_mode' => 'scoped']];
+    }
+
+
+    private function hasAny(array $haystack, array $needles): bool
+    {
+        return !empty(array_intersect($haystack, $needles));
+    }
+
+    private function hasAll(array $haystack, array $needles): bool
+    {
+        return !empty($needles) && !array_diff($needles, $haystack);
+    }
+
+    private function requiredPermsFromRule(array $rule): array
+    {
+        return array_merge((array) $rule['permissions_any'], (array) $rule['permissions_all']);
+    }
+
+    // This method remains the same; its purpose is to fetch the cached rules from Redis
+    private function getRulesCached(string $service, string $method, int $version): array
+    {
+        $cache = Cache::store('redis');
+        $cacheKey = "authz:rules:v{$version}:{$service}:{$method}";
+        return $cache->remember($cacheKey, 60, function () use ($service, $method) {
+            return AuthRule::where('service', $service)
+                ->where('method', strtoupper($method))
                 ->where('is_active', true)
-                ->whereIn('method', [$method, 'ANY'])
-                ->orderByDesc('priority')
-                ->orderBy('id')
-                ->get();
-
-            // Convert to array for fast iteration & to keep Redis payload small
-            return $rules->map(function (AuthRule $r) {
-                return [
-                    'id'                           => $r->id,
-                    'service'                      => $r->service,
-                    'method'                       => $r->method,
-                    'path_regex'                   => $r->path_regex,
-                    'route_name'                   => $r->route_name,
-                    'roles_any'                    => $r->roles_any ?: [],
-                    'permissions_any'              => $r->permissions_any ?: [],
-                    'permissions_all'              => $r->permissions_all ?: [],
-                    'store_scope_mode'             => $r->store_scope_mode ?: 'none',
-                    'store_id_sources'             => $r->store_id_sources ?: null,
-                    'store_match_policy'           => $r->store_match_policy ?: 'all',
-                    'store_allows_empty'           => (bool)$r->store_allows_empty,
-                    'store_all_access_roles_any'   => $r->store_all_access_roles_any ?: [],
-                    'store_all_access_permissions_any' => $r->store_all_access_permissions_any ?: [],
-                    'priority'                     => (int)$r->priority,
-                ];
-            })->values()->all();
+                ->get()
+                ->toArray();
         });
     }
+
 
     private function evaluateRule(
         array $rule,
@@ -308,12 +318,6 @@ class AuthorizationResolver
         return false;
     }
 
-    private function requiredPermsFromRule(array $rule): array
-    {
-        $permsAny = (array)($rule['permissions_any'] ?? []);
-        $permsAll = (array)($rule['permissions_all'] ?? []);
-        return !empty($permsAny) ? $permsAny : $permsAll;
-    }
 
     /**
      * Extract store IDs from store_context using rule.store_id_sources
@@ -351,27 +355,7 @@ class AuthorizationResolver
         return $collected;
     }
 
-    private function normalizeStoreIds($value): array
-    {
-        if ($value === null) return [];
 
-        // scalar
-        if (is_int($value)) return [$value];
-        if (is_string($value) && ctype_digit($value)) return [(int)$value];
-
-        // array
-        if (is_array($value)) {
-            $out = [];
-            foreach ($value as $v) {
-                foreach ($this->normalizeStoreIds($v) as $sid) {
-                    $out[] = $sid;
-                }
-            }
-            return $out;
-        }
-
-        return [];
-    }
 
     private function getByDotPath($arr, string $path)
     {
@@ -445,20 +429,25 @@ class AuthorizationResolver
         });
     }
 
-    private function hasAny(array $haystack, array $needles): bool
+    private function normalizeStoreIds(array $storeIds): array
     {
-        if (empty($needles)) return false;
-        $map = array_flip($haystack);
-        foreach ($needles as $n) if (isset($map[$n])) return true;
-        return false;
+        // Normalize store IDs by ensuring that we handle them as strings and remove any invalid values
+        return array_filter(array_map('strval', $storeIds), function ($id) {
+            return !empty($id);  // Remove any empty or null values
+        });
     }
 
-    private function hasAll(array $haystack, array $needles): bool
+    private function extractStoreIdsFromContext(array $storeContext): array
     {
-        if (empty($needles)) return false;
-        $map = array_flip($haystack);
-        foreach ($needles as $n) if (!isset($map[$n])) return false;
-        return true;
+        // Extract store IDs from the store context to identify which stores the user is acting on
+        $storeIds = [];
+        foreach (['path', 'query', 'body'] as $key) {
+            if (isset($storeContext[$key])) {
+                // Ensure store IDs are always strings
+                $storeIds = array_merge($storeIds, $this->normalizeStoreIds($storeContext[$key]));
+            }
+        }
+        return array_values(array_unique($storeIds));  // Return unique store IDs as an array
     }
 
     private function abilitiesCoverAny(array $abilities, array $perms): bool

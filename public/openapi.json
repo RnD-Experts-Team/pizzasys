@@ -1160,7 +1160,6 @@
                     }
                 }
             },
-
             "post": {
                 "tags": ["Authorization Rules"],
                 "summary": "Create authorization rule",
@@ -1215,7 +1214,6 @@
                     }
                 }
             },
-
             "put": {
                 "tags": ["Authorization Rules"],
                 "summary": "Update authorization rule",
@@ -1251,7 +1249,6 @@
                     }
                 }
             },
-
             "delete": {
                 "tags": ["Authorization Rules"],
                 "summary": "Delete authorization rule",
@@ -1371,543 +1368,543 @@
                     }
                 }
             }
-        },
-        "/stores": {
-            "get": {
-                "tags": ["Stores"],
-                "summary": "List stores",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": { "type": "integer", "default": 15 }
-                    },
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": { "type": "string" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Paginated stores list",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreIndexResponse"
-                                }
+        }
+    },
+    "/stores": {
+        "get": {
+            "tags": ["Stores"],
+            "summary": "List stores",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "per_page",
+                    "in": "query",
+                    "schema": { "type": "integer", "default": 15 }
+                },
+                {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Paginated stores list",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreIndexResponse"
                             }
+                        }
+                    }
+                }
+            }
+        },
+
+        "post": {
+            "tags": ["Stores"],
+            "summary": "Create store",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/CreateStoreRequest"
                         }
                     }
                 }
             },
-
-            "post": {
-                "tags": ["Stores"],
-                "summary": "Create store",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
+            "responses": {
+                "201": {
+                    "description": "Store created",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/CreateStoreRequest"
+                                "$ref": "#/components/schemas/StoreSingleResponse"
                             }
                         }
                     }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Store created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreSingleResponse"
-                                }
+                }
+            }
+        }
+    },
+    "/stores/{store}": {
+        "get": {
+            "tags": ["Stores"],
+            "summary": "Get store",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store details",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreSingleResponse"
                             }
                         }
                     }
                 }
             }
         },
-        "/stores/{store}": {
-            "get": {
-                "tags": ["Stores"],
-                "summary": "Get store",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store",
-                        "in": "path",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreSingleResponse"
-                                }
-                            }
+
+        "put": {
+            "tags": ["Stores"],
+            "summary": "Update store",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/UpdateStoreRequest"
                         }
                     }
                 }
             },
-
-            "put": {
-                "tags": ["Stores"],
-                "summary": "Update store",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store",
-                        "in": "path",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
+            "responses": {
+                "200": {
+                    "description": "Store updated",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UpdateStoreRequest"
+                                "$ref": "#/components/schemas/StoreSingleResponse"
                             }
                         }
                     }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Store updated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreSingleResponse"
-                                }
+                }
+            }
+        },
+
+        "delete": {
+            "tags": ["Stores"],
+            "summary": "Delete store",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store deleted",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BasicSuccessResponse"
                             }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/stores/{store}/users": {
+        "get": {
+            "tags": ["Stores"],
+            "summary": "Get store users",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                },
+                {
+                    "name": "role_id",
+                    "in": "query",
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store users list",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreUsersResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/stores/{store}/roles": {
+        "get": {
+            "tags": ["Stores"],
+            "summary": "Get store roles",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                },
+                {
+                    "name": "user_id",
+                    "in": "query",
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store roles list",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreRolesResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/user-role-store/assign": {
+        "post": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Assign role to user in store",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AssignUserRoleStoreRequest"
                         }
                     }
                 }
             },
-
-            "delete": {
-                "tags": ["Stores"],
-                "summary": "Delete store",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store",
-                        "in": "path",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store deleted",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/BasicSuccessResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/stores/{store}/users": {
-            "get": {
-                "tags": ["Stores"],
-                "summary": "Get store users",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store",
-                        "in": "path",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    },
-                    {
-                        "name": "role_id",
-                        "in": "query",
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store users list",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreUsersResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/stores/{store}/roles": {
-            "get": {
-                "tags": ["Stores"],
-                "summary": "Get store roles",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store",
-                        "in": "path",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    },
-                    {
-                        "name": "user_id",
-                        "in": "query",
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store roles list",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StoreRolesResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/user-role-store/assign": {
-            "post": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Assign role to user in store",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
+            "responses": {
+                "201": {
+                    "description": "Assignment created",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/AssignUserRoleStoreRequest"
+                                "$ref": "#/components/schemas/UserRoleStoreSingleResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/user-role-store/remove": {
+        "post": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Remove user role store assignment",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Assignment removed",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BasicSuccessResponse"
                             }
                         }
                     }
                 },
-                "responses": {
-                    "201": {
-                        "description": "Assignment created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserRoleStoreSingleResponse"
-                                }
-                            }
+                "404": {
+                    "description": "Assignment not found"
+                }
+            }
+        }
+    },
+    "/user-role-store/toggle": {
+        "post": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Toggle assignment active status",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
                         }
                     }
                 }
-            }
-        },
-        "/user-role-store/remove": {
-            "post": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Remove user role store assignment",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
+            },
+            "responses": {
+                "200": {
+                    "description": "Assignment toggled",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
+                                "$ref": "#/components/schemas/BasicSuccessResponse"
                             }
                         }
                     }
                 },
-                "responses": {
-                    "200": {
-                        "description": "Assignment removed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/BasicSuccessResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Assignment not found"
-                    }
+                "404": {
+                    "description": "Assignment not found"
                 }
             }
-        },
-        "/user-role-store/toggle": {
-            "post": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Toggle assignment active status",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
+        }
+    },
+    "/user-role-store/bulk-assign": {
+        "post": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Bulk assign roles to user across stores",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/BulkAssignUserRoleStoreRequest"
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "201": {
+                    "description": "Bulk assignments completed",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/UserRoleStoreIdentifierRequest"
+                                "$ref": "#/components/schemas/UserRoleStoreBulkResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/user-role-store/user-assignments": {
+        "get": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Get user role store assignments",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "user_id",
+                    "in": "query",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                },
+                {
+                    "name": "store_id",
+                    "in": "query",
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "User assignments list",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserRoleStoreListResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/user-role-store/store-assignments": {
+        "get": {
+            "tags": ["User Role Store Assignments"],
+            "summary": "Get store role assignments",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store_id",
+                    "in": "query",
+                    "required": true,
+                    "schema": { "type": "integer" }
+                },
+                {
+                    "name": "role_id",
+                    "in": "query",
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store assignments list",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserRoleStoreListResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/role-hierarchy": {
+        "post": {
+            "tags": ["Role Hierarchy"],
+            "summary": "Create role hierarchy relationship",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/CreateRoleHierarchyRequest"
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "201": {
+                    "description": "Hierarchy created",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RoleHierarchySingleResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "/role-hierarchy/remove": {
+        "post": {
+            "tags": ["Role Hierarchy"],
+            "summary": "Remove role hierarchy relationship",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Hierarchy removed",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BasicSuccessResponse"
                             }
                         }
                     }
                 },
-                "responses": {
-                    "200": {
-                        "description": "Assignment toggled",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/BasicSuccessResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Assignment not found"
-                    }
+                "404": {
+                    "description": "Hierarchy not found"
                 }
             }
-        },
-        "/user-role-store/bulk-assign": {
-            "post": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Bulk assign roles to user across stores",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
+        }
+    },
+    "/role-hierarchy/store": {
+        "get": {
+            "tags": ["Role Hierarchy"],
+            "summary": "Get store role hierarchy list",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store_id",
+                    "in": "query",
                     "required": true,
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Store hierarchies",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/BulkAssignUserRoleStoreRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Bulk assignments completed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserRoleStoreBulkResponse"
-                                }
+                                "$ref": "#/components/schemas/RoleHierarchyListResponse"
                             }
                         }
                     }
                 }
             }
-        },
-        "/user-role-store/user-assignments": {
-            "get": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Get user role store assignments",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    },
-                    {
-                        "name": "store_id",
-                        "in": "query",
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User assignments list",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserRoleStoreListResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/user-role-store/store-assignments": {
-            "get": {
-                "tags": ["User Role Store Assignments"],
-                "summary": "Get store role assignments",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store_id",
-                        "in": "query",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    },
-                    {
-                        "name": "role_id",
-                        "in": "query",
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store assignments list",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserRoleStoreListResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/role-hierarchy": {
-            "post": {
-                "tags": ["Role Hierarchy"],
-                "summary": "Create role hierarchy relationship",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
+        }
+    },
+    "/role-hierarchy/tree": {
+        "get": {
+            "tags": ["Role Hierarchy"],
+            "summary": "Get role hierarchy tree",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                {
+                    "name": "store_id",
+                    "in": "query",
                     "required": true,
+                    "schema": { "type": "integer" }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Hierarchy tree",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/CreateRoleHierarchyRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Hierarchy created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RoleHierarchySingleResponse"
-                                }
+                                "$ref": "#/components/schemas/RoleHierarchyTreeResponse"
                             }
                         }
                     }
                 }
             }
-        },
-        "/role-hierarchy/remove": {
-            "post": {
-                "tags": ["Role Hierarchy"],
-                "summary": "Remove role hierarchy relationship",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
+        }
+    },
+    "/role-hierarchy/validate": {
+        "post": {
+            "tags": ["Role Hierarchy"],
+            "summary": "Validate role hierarchy relationship",
+            "security": [{ "bearerAuth": [] }],
+            "requestBody": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Validation result",
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Hierarchy removed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/BasicSuccessResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Hierarchy not found"
-                    }
-                }
-            }
-        },
-        "/role-hierarchy/store": {
-            "get": {
-                "tags": ["Role Hierarchy"],
-                "summary": "Get store role hierarchy list",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store_id",
-                        "in": "query",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Store hierarchies",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RoleHierarchyListResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/role-hierarchy/tree": {
-            "get": {
-                "tags": ["Role Hierarchy"],
-                "summary": "Get role hierarchy tree",
-                "security": [{ "bearerAuth": [] }],
-                "parameters": [
-                    {
-                        "name": "store_id",
-                        "in": "query",
-                        "required": true,
-                        "schema": { "type": "integer" }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Hierarchy tree",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RoleHierarchyTreeResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/role-hierarchy/validate": {
-            "post": {
-                "tags": ["Role Hierarchy"],
-                "summary": "Validate role hierarchy relationship",
-                "security": [{ "bearerAuth": [] }],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/RoleHierarchyIdentifierRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Validation result",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RoleHierarchyValidationResponse"
-                                }
+                                "$ref": "#/components/schemas/RoleHierarchyValidationResponse"
                             }
                         }
                     }
@@ -2146,14 +2143,6 @@
                             "token_type": { "type": "string" }
                         }
                     }
-                }
-            },
-
-            "BasicSuccessResponse": {
-                "type": "object",
-                "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
                 }
             },
 
@@ -2653,20 +2642,18 @@
             "AuthRuleIndexResponse": {
                 "type": "object",
                 "properties": {
-                    "success": { "type": "boolean" },
+                    "success": {
+                        "type": "boolean"
+                    },
                     "data": {
                         "type": "object",
                         "properties": {
-                            "data": {
+                            "rules": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/AuthRuleItem"
+                                    "$ref": "#/components/schemas/AuthRule"
                                 }
-                            },
-                            "current_page": { "type": "integer" },
-                            "last_page": { "type": "integer" },
-                            "per_page": { "type": "integer" },
-                            "total": { "type": "integer" }
+                            }
                         }
                     }
                 }
@@ -2674,85 +2661,309 @@
             "AuthRuleSingleResponse": {
                 "type": "object",
                 "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
+                    "success": {
+                        "type": "boolean"
+                    },
                     "data": {
+                        "$ref": "#/components/schemas/AuthRule"
+                    }
+                }
+            },
+            "AuthRule": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "service": {
+                        "type": "string"
+                    },
+                    "method": {
+                        "type": "string"
+                    },
+                    "path_dsl": {
+                        "type": "string"
+                    },
+                    "path_regex": {
+                        "type": "string"
+                    },
+                    "route_name": {
+                        "type": "string"
+                    },
+                    "roles_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "permissions_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "permissions_all": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "store_scope_mode": {
+                        "type": "string",
+                        "enum": ["none", "scoped", "all_stores"]
+                    },
+                    "store_id_sources": {
                         "type": "object",
                         "properties": {
-                            "rule": {
-                                "$ref": "#/components/schemas/AuthRuleItem"
+                            "path": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "query": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "body": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
+                    },
+                    "store_match_policy": {
+                        "type": "string",
+                        "enum": ["all", "any"]
+                    },
+                    "store_allows_empty": {
+                        "type": "boolean"
+                    },
+                    "store_all_access_roles_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "store_all_access_permissions_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "priority": {
+                        "type": "integer"
                     }
                 }
             },
             "CreateAuthRuleRequest": {
                 "type": "object",
-                "required": ["service", "method"],
                 "properties": {
-                    "service": { "type": "string" },
-                    "method": {
-                        "type": "string",
-                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ANY"]
+                    "service": {
+                        "type": "string"
                     },
-                    "path_dsl": { "type": ["string", "null"] },
-                    "route_name": { "type": ["string", "null"] },
+                    "method": {
+                        "type": "string"
+                    },
+                    "path_dsl": {
+                        "type": "string"
+                    },
+                    "route_name": {
+                        "type": "string"
+                    },
                     "roles_any": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "permissions_any": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "permissions_all": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
-                    "priority": { "type": "integer" },
-                    "is_active": { "type": "boolean" }
+                    "store_scope_mode": {
+                        "type": "string",
+                        "enum": ["none", "scoped", "all_stores"]
+                    },
+                    "store_id_sources": {
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "query": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "body": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "store_match_policy": {
+                        "type": "string",
+                        "enum": ["all", "any"]
+                    },
+                    "store_allows_empty": {
+                        "type": "boolean"
+                    },
+                    "store_all_access_roles_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "store_all_access_permissions_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "priority": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
                 }
             },
-
             "UpdateAuthRuleRequest": {
                 "type": "object",
                 "properties": {
-                    "service": { "type": "string" },
-                    "method": {
-                        "type": "string",
-                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "ANY"]
+                    "service": {
+                        "type": "string"
                     },
-                    "path_dsl": { "type": ["string", "null"] },
-                    "route_name": { "type": ["string", "null"] },
+                    "method": {
+                        "type": "string"
+                    },
+                    "path_dsl": {
+                        "type": "string"
+                    },
+                    "route_name": {
+                        "type": "string"
+                    },
                     "roles_any": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "permissions_any": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "permissions_all": {
                         "type": "array",
-                        "items": { "type": "string" }
+                        "items": {
+                            "type": "string"
+                        }
                     },
-                    "priority": { "type": "integer" },
-                    "is_active": { "type": "boolean" }
+                    "store_scope_mode": {
+                        "type": "string",
+                        "enum": ["none", "scoped", "all_stores"]
+                    },
+                    "store_id_sources": {
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "query": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "body": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "store_match_policy": {
+                        "type": "string",
+                        "enum": ["all", "any"]
+                    },
+                    "store_allows_empty": {
+                        "type": "boolean"
+                    },
+                    "store_all_access_roles_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "store_all_access_permissions_any": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "priority": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "BasicSuccessResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
                 }
             },
             "AuthRuleTestResponse": {
                 "type": "object",
                 "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "path_dsl": { "type": "string" },
-                            "path_regex": { "type": ["string", "null"] },
-                            "test_path": { "type": "string" },
-                            "matches": { "type": "boolean" },
-                            "compiled_successfully": { "type": "boolean" }
-                        }
+                    "path_dsl": {
+                        "type": "string"
+                    },
+                    "path_regex": {
+                        "type": "string"
+                    },
+                    "test_path": {
+                        "type": "string"
+                    },
+                    "matches": {
+                        "type": "boolean"
+                    },
+                    "compiled_successfully": {
+                        "type": "boolean"
                     }
                 }
             },
