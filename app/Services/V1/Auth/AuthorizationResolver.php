@@ -413,7 +413,14 @@ class AuthorizationResolver
         $result = [];
         foreach ($items as $item) {
             if (is_numeric($item) && (int) $item > 0) {
+                // Already an integer PK
                 $result[] = (int) $item;
+            } elseif (is_string($item) && $item !== '') {
+                // String store code (e.g. "03795-00001") → resolve to integer PK
+                $pk = $this->resolveStoreStringIdCached($item);
+                if ($pk !== null) {
+                    $result[] = $pk;
+                }
             }
         }
 
@@ -427,6 +434,24 @@ class AuthorizationResolver
     /**
      * Load active rules for a service+method, ordered by priority, from Redis.
      */
+
+    /**
+     * Resolve a string store_id (e.g. "03795-00001") to the integer PK.
+     * Cached per store code to avoid repeated DB hits.
+     */
+    private function resolveStoreStringIdCached(string $storeCode): ?int
+    {
+        $key = 'authz:store_code:' . hash('sha256', $storeCode);
+
+        $pk = Cache::store('redis')->remember($key, 300, function () use ($storeCode) {
+            return Store::where('store_id', $storeCode)
+                ->where('is_active', true)
+                ->value('id');
+        });
+
+        return $pk ? (int) $pk : null;
+    }
+
     private function getRulesCached(string $service, string $method, int $version): array
     {
         $key = "authz:rules:v{$version}:{$service}:{$method}";
