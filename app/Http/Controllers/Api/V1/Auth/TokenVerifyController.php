@@ -25,6 +25,13 @@ class TokenVerifyController extends Controller
         $path      = (string) $request->input('path', '/');
         $routeName = $request->input('route_name');
 
+        // Strip /api prefix so rules are written without it
+        if (str_starts_with($path, '/api/')) {
+            $path = substr($path, 4); // "/api/stores/1" → "/stores/1"
+        } elseif ($path === '/api') {
+            $path = '/';
+        }
+
         $storeContext = (array)($request->input('store_context', []));
         $storeContext = [
             'path'  => (array)($storeContext['path'] ?? []),
