@@ -36,7 +36,7 @@ class AuthzRuleAdd extends Command
         $routeName = $isRoute ? substr($target, 6) : null;
         $pathDsl = $isRoute ? null : $target;
 
-        $pathRegex = $pathDsl ? AuthRule::compilePathDsl($pathDsl) : null;
+        $pathRegex = $pathDsl ? AuthRule::compilePathDslToRegex($pathDsl) : null;
 
         if (!$routeName && !$pathRegex) {
             $this->error('You must provide either a route:NAME or a valid path DSL.');

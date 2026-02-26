@@ -11,10 +11,10 @@ class AuthRuleManagementService
         $query = AuthRule::query();
 
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('service', 'like', "%{$search}%")
-                  ->orWhere('path_dsl', 'like', "%{$search}%")
-                  ->orWhere('route_name', 'like', "%{$search}%");
+                    ->orWhere('path_dsl', 'like', "%{$search}%")
+                    ->orWhere('route_name', 'like', "%{$search}%");
             });
         }
 
@@ -23,9 +23,9 @@ class AuthRuleManagementService
         }
 
         return $query->orderBy('service')
-                    ->orderByDesc('priority')
-                    ->orderBy('id')
-                    ->paginate($perPage);
+            ->orderByDesc('priority')
+            ->orderBy('id')
+            ->paginate($perPage);
     }
 
     public function createRule(array $data): AuthRule
@@ -37,7 +37,7 @@ class AuthRuleManagementService
         $isRoute = isset($data['route_name']) && $data['route_name'];
         $routeName = $isRoute ? $data['route_name'] : null;
         $pathDsl = $isRoute ? null : ($data['path_dsl'] ?? null);
-        $pathRegex = $pathDsl ? AuthRule::compilePathDsl($pathDsl) : null;
+        $pathRegex = $pathDsl ? AuthRule::compilePathDslToRegex($pathDsl) : null;
 
         // For now, create one rule per method
         $rule = null;
@@ -62,20 +62,20 @@ class AuthRuleManagementService
     public function updateRule(AuthRule $rule, array $data): AuthRule
     {
         $updateData = [];
-        
+
         foreach (['service', 'method', 'route_name', 'path_dsl', 'priority', 'is_active'] as $field) {
             if (isset($data[$field])) {
                 $updateData[$field] = $data[$field];
             }
         }
-        
+
         if (isset($data['method'])) {
             $updateData['method'] = strtoupper($data['method']);
         }
 
         // Recompile regex if path_dsl changed
         if (isset($data['path_dsl'])) {
-            $updateData['path_regex'] = AuthRule::compilePathDsl($data['path_dsl']);
+            $updateData['path_regex'] = AuthRule::compilePathDslToRegex($data['path_dsl']);
         }
 
         foreach (['roles_any', 'permissions_any', 'permissions_all'] as $field) {
@@ -108,11 +108,11 @@ class AuthRuleManagementService
     {
         // Test path compilation
         $pathDsl = $data['path_dsl'] ?? null;
-        $pathRegex = $pathDsl ? AuthRule::compilePathDsl($pathDsl) : null;
-        
+        $pathRegex = $pathDsl ? AuthRule::compilePathDslToRegex($pathDsl) : null;
+
         $testPath = $data['test_path'] ?? '/';
         $matches = false;
-        
+
         if ($pathRegex) {
             $matches = @preg_match($pathRegex, $testPath) === 1;
         }
