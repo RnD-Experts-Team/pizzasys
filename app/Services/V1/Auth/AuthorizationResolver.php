@@ -351,7 +351,7 @@ class AuthorizationResolver
 
         if (!is_array($sources)) {
             $sources = [
-                'path'  => ['store_id', 'storeId'],
+                'path'  => ['store_id', 'storeId', 'store'],
                 'query' => ['store_id', 'store_ids', 'storeIds', 'stores', 'store'],
                 'body'  => ['store_id', 'store_ids', 'storeIds', 'stores', 'store', 'filters.store_ids', 'filters.store_id'],
             ];
