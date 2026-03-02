@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use App\Models\Role;
 use App\Models\UserRoleStore;
+use App\Models\AuthRule;
 
 class AuthService
 {
@@ -447,5 +448,150 @@ class AuthService
         }
 
         return 'none';
+    }
+
+    public function getAuthorizationOverview(User $user): array
+    {
+        $user->load([
+            'roles.permissions',
+            'permissions',
+            'roleTenancies.role.permissions',
+            'roleTenancies.store'
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1) Auth Rules
+        |--------------------------------------------------------------------------
+        */
+        $authRules = AuthRule::query()
+            ->where('is_active', true)
+            ->orderBy('priority')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2) Direct Roles (Global Roles - Not Store)
+        |--------------------------------------------------------------------------
+        */
+        $directRoles = $user->roles->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'guard_name' => $role->guard_name,
+                'permissions' => $role->permissions->map(fn($perm) => [
+                    'id' => $perm->id,
+                    'name' => $perm->name,
+                    'guard_name' => $perm->guard_name,
+                ])->values(),
+            ];
+        })->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3) Direct Permissions (assigned directly to user)
+        |--------------------------------------------------------------------------
+        */
+        $directPermissions = $user->permissions->map(fn($perm) => [
+            'id' => $perm->id,
+            'name' => $perm->name,
+            'guard_name' => $perm->guard_name,
+        ])->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 4) Full Permissions (direct + via global roles)
+        |--------------------------------------------------------------------------
+        */
+        $fullPermissions = $user->getAllPermissions()
+            ->unique('id')
+            ->map(fn($perm) => [
+                'id' => $perm->id,
+                'name' => $perm->name,
+                'guard_name' => $perm->guard_name,
+            ])->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 5) Store Assignments
+        |--------------------------------------------------------------------------
+        */
+        $storeAssignments = [];
+
+        foreach ($user->roleTenancies->where('is_active', true) as $assignment) {
+            $storeId = $assignment->store->id;
+
+            if (!isset($storeAssignments[$storeId])) {
+                $storeAssignments[$storeId] = [
+                    'store' => [
+                        'id' => $assignment->store->id,
+                        'name' => $assignment->store->name,
+                        'metadata' => $assignment->store->metadata,
+                        'is_active' => $assignment->store->is_active,
+                    ],
+                    'roles' => [],
+                    'all_permissions_from_store_roles' => collect(),
+                ];
+            }
+
+            $role = $assignment->role;
+
+            // Role permissions in that store (with hierarchy)
+            $rolePermissions = $role->getAllPermissionsForStore($storeId);
+
+            $storeAssignments[$storeId]['roles'][] = [
+                'id' => $role->id,
+                'name' => $role->name,
+                'guard_name' => $role->guard_name,
+                'assignment_metadata' => $assignment->metadata,
+                'permissions' => $rolePermissions->map(fn($perm) => [
+                    'id' => $perm->id,
+                    'name' => $perm->name,
+                    'guard_name' => $perm->guard_name,
+                ])->values(),
+            ];
+
+            $storeAssignments[$storeId]['all_permissions_from_store_roles'] =
+                $storeAssignments[$storeId]['all_permissions_from_store_roles']
+                ->merge($rolePermissions);
+        }
+
+        // Normalize store permissions
+        $storeAssignments = collect($storeAssignments)->map(function ($store) {
+            $store['all_permissions_from_store_roles'] =
+                $store['all_permissions_from_store_roles']
+                ->unique('id')
+                ->map(fn($perm) => [
+                    'id' => $perm->id,
+                    'name' => $perm->name,
+                    'guard_name' => $perm->guard_name,
+                ])
+                ->values();
+
+            return $store;
+        })->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Final Structured Response
+        |--------------------------------------------------------------------------
+        */
+        return [
+            'auth_rules' => $authRules,
+
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+
+            'direct_roles' => $directRoles,
+
+            'direct_permissions' => $directPermissions,
+
+            'full_permissions' => $fullPermissions,
+
+            'store_assignments' => $storeAssignments,
+        ];
     }
 }

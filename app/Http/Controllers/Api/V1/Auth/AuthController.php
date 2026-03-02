@@ -23,7 +23,7 @@ class AuthController extends Controller
     // {
     //     try {
     //         $result = $this->authService->register($request->validated());
-            
+
     //         return response()->json([
     //             'success' => true,
     //             'message' => $result['message'],
@@ -41,28 +41,28 @@ class AuthController extends Controller
     // }
 
     public function login(LoginRequest $request): JsonResponse
-{
-    try {
-        $result = $this->authService->login(
-            $request->email,
-            $request->password,
-            $request->input('device'),
-            $request->input('fcm_token'),
-            $request->input('client_type', 'web'),
-        );
+    {
+        try {
+            $result = $this->authService->login(
+                $request->email,
+                $request->password,
+                $request->input('device'),
+                $request->input('fcm_token'),
+                $request->input('client_type', 'web'),
+            );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => $result
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 401);
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 401);
+        }
     }
-}
 
     public function verifyEmail(VerifyOtpRequest $request): JsonResponse
     {
@@ -92,7 +92,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-        
+
         if ($user->email_verified_at) {
             return response()->json([
                 'success' => false,
@@ -102,7 +102,7 @@ class AuthController extends Controller
 
         try {
             $this->authService->sendOtp($request->email, 'verification');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Verification OTP sent successfully'
@@ -119,7 +119,7 @@ class AuthController extends Controller
     {
         try {
             $this->authService->sendOtp($request->email, 'password_reset');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Password reset OTP sent to your email'
@@ -157,7 +157,7 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->refreshToken($request->user());
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Token refreshed successfully',
@@ -182,19 +182,19 @@ class AuthController extends Controller
     }
 
     public function me(Request $request): JsonResponse
-{
-    $user = $request->user();
-    $userData = $this->authService->getUserCompleteData($user);
+    {
+        $user = $request->user();
+        $userData = $this->authService->getUserCompleteData($user);
 
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'user' => $userData
-        ]
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $userData
+            ]
+        ]);
+    }
 
-public function verifyResetOtp(Request $request)
+    public function verifyResetOtp(Request $request)
     {
         $data = $request->validate([
             'email' => 'required|email',
@@ -219,4 +219,13 @@ public function verifyResetOtp(Request $request)
         ]);
     }
 
+    public function authorizationOverview(Request $request): JsonResponse
+    {
+        $data = $this->authService->getAuthorizationOverview($request->user());
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
 }
