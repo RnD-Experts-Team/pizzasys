@@ -285,6 +285,43 @@
                 }
             }
         },
+
+        "/api/v1/auth/authorization-overview": {
+            "get": {
+                "summary": "Get full authorization overview for authenticated user",
+                "tags": ["Auth"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authorization overview retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/AuthorizationOverview"
+                                        }
+                                    },
+                                    "required": ["success", "data"]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "tags": ["Users"],
@@ -1948,7 +1985,58 @@
                     "fcm_token": { "type": "string" }
                 }
             },
-
+            "AuthorizationOverview": {
+                "type": "object",
+                "properties": {
+                    "auth_rules": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/AuthRule" }
+                    },
+                    "user": { "$ref": "#/components/schemas/UserBasic" },
+                    "direct_roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissions"
+                        }
+                    },
+                    "direct_permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+                    "full_permissions": {
+                        "type": "array",
+                        "description": "Direct permissions + permissions via global roles (excluding store roles)",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+                    "store_assignments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StoreAssignment"
+                        }
+                    }
+                },
+                "required": [
+                    "auth_rules",
+                    "user",
+                    "direct_roles",
+                    "direct_permissions",
+                    "full_permissions",
+                    "store_assignments"
+                ]
+            },
+            "UserBasic": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer", "example": 1 },
+                    "name": { "type": "string", "example": "John Doe" },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    }
+                },
+                "required": ["id", "name", "email"]
+            },
             "LoginResponse": {
                 "type": "object",
                 "properties": {
@@ -3237,6 +3325,25 @@
                         "items": { "type": "string" }
                     }
                 }
+            },
+            "StoreAssignment": {
+                "type": "object",
+                "properties": {
+                    "store": { "$ref": "#/components/schemas/StoreBasic" },
+                    "roles": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/StoreRole" }
+                    },
+                    "all_permissions_from_store_roles": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    }
+                },
+                "required": [
+                    "store",
+                    "roles",
+                    "all_permissions_from_store_roles"
+                ]
             }
         }
     }
