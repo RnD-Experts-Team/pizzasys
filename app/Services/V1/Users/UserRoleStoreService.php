@@ -35,6 +35,7 @@ class UserRoleStoreService
                 'is_active' => $data['is_active'] ?? true,
             ]);
             $role = $assignment->role;
+            $store = $assignment->store;
             $this->recordEvent('auth.v1.assignment.user_role_store.assigned', [
                 'assignment' => [
                     'id' => $assignment->id,
@@ -44,6 +45,7 @@ class UserRoleStoreService
                     'metadata' => $assignment->metadata,
                     'is_active' => (bool) $assignment->is_active,
                     'role_name' => $role?->name,
+                    'store_lc_id' => $store?->store_id,
                     'created_at' => optional($assignment->created_at)?->toIso8601String(),
                     'updated_at' => optional($assignment->updated_at)?->toIso8601String(),
                 ],
@@ -157,13 +159,14 @@ class UserRoleStoreService
                 'assignments' => array_map(function ($row) {
                     /** @var \App\Models\UserRoleStore $row */
                     $role = $row->role;
-
+                    $store = $row->store;
                     return [
                         'id' => $row->id,
                         'role_id' => (int) $row->role_id,
                         'store_id' => (int) $row->store_id,
                         'metadata' => $row->metadata,
                         'role_name' => $role?->name,
+                        'store_lc_id' => $store?->store_id,
                         'is_active' => (bool) $row->is_active,
                         'created_at' => optional($row->created_at)?->toIso8601String(),
                     ];
