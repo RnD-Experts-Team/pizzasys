@@ -15,7 +15,7 @@ class UserRoleStoreService
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
-        $outbox  = app(AuthOutboxService::class);
+        $outbox = app(AuthOutboxService::class);
 
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
@@ -34,7 +34,7 @@ class UserRoleStoreService
                 'metadata' => $data['metadata'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
             ]);
-
+            $role = $assignment->role;
             $this->recordEvent('auth.v1.assignment.user_role_store.assigned', [
                 'assignment' => [
                     'id' => $assignment->id,
@@ -43,6 +43,7 @@ class UserRoleStoreService
                     'store_id' => (int) $assignment->store_id,
                     'metadata' => $assignment->metadata,
                     'is_active' => (bool) $assignment->is_active,
+                    'role_name' => $role?->name,
                     'created_at' => optional($assignment->created_at)?->toIso8601String(),
                     'updated_at' => optional($assignment->updated_at)?->toIso8601String(),
                 ],
@@ -94,7 +95,7 @@ class UserRoleStoreService
             }
 
             $before = (bool) $assignment->is_active;
-            $after  = !$before;
+            $after = !$before;
 
             $assignment->update(['is_active' => $after]);
 
@@ -155,11 +156,14 @@ class UserRoleStoreService
                 'count' => count($results),
                 'assignments' => array_map(function ($row) {
                     /** @var \App\Models\UserRoleStore $row */
+                    $role = $row->role;
+
                     return [
                         'id' => $row->id,
                         'role_id' => (int) $row->role_id,
                         'store_id' => (int) $row->store_id,
                         'metadata' => $row->metadata,
+                        'role_name' => $role?->name,
                         'is_active' => (bool) $row->is_active,
                         'created_at' => optional($row->created_at)?->toIso8601String(),
                     ];
