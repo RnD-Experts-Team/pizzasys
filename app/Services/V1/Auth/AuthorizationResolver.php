@@ -21,15 +21,15 @@ class AuthorizationResolver
      * A permission granted only inside a store does NOT satisfy a global check, and vice versa.
      */
     public function check(
-        string  $service,
-        string  $method,
-        string  $path,
+        string $service,
+        string $method,
+        string $path,
         ?string $routeName,
-        array   $userRolesGlobal,   // Spatie global roles (passed in but re-fetched below for safety)
-        array   $userPermsGlobal,   // Spatie global permissions
-        array   $tokenAbilities,
-        array   $storeContext,
-        int     $userId
+        array $userRolesGlobal,   // Spatie global roles (passed in but re-fetched below for safety)
+        array $userPermsGlobal,   // Spatie global permissions
+        array $tokenAbilities,
+        array $storeContext,
+        int $userId
     ): array {
         // ── 1) Super-role bypass ──────────────────────────────────────────────
         $superRoles = (array) config('authz.super_roles', []);
@@ -48,7 +48,7 @@ class AuthorizationResolver
         }
 
         // ── 2) Load cached rules ──────────────────────────────────────────────
-        $ver   = (int) Cache::get('authz:ver', 1);
+        $ver = (int) Cache::get('authz:ver', 1);
         $rules = $this->getRulesCached($service, $method, $ver);
 
         // ── 3) Match rule: routeName first, then path_regex ───────────────────
@@ -106,12 +106,12 @@ class AuthorizationResolver
      *   all_stores → user must cover all active stores, then global perms apply
      */
     private function evaluateRule(
-        array  $rule,
-        array  $userRolesGlobal,
-        array  $userPermsGlobal,
-        array  $tokenAbilities,
-        array  $storeContext,
-        int    $userId
+        array $rule,
+        array $userRolesGlobal,
+        array $userPermsGlobal,
+        array $tokenAbilities,
+        array $storeContext,
+        int $userId
     ): array {
         $storeMode = (string) ($rule['store_scope_mode'] ?? 'none');
 
@@ -219,8 +219,8 @@ class AuthorizationResolver
             // Fast path: rule defines special all-store access permissions
             $allPermsAny = (array) ($rule['store_all_access_permissions_any'] ?? []);
             if (!empty($allPermsAny)) {
-                $userHas  = $this->hasAny($userPermsGlobal, $allPermsAny);
-                $tokenOk  = $this->abilitiesCoverAny($tokenAbilities, $allPermsAny);
+                $userHas = $this->hasAny($userPermsGlobal, $allPermsAny);
+                $tokenOk = $this->abilitiesCoverAny($tokenAbilities, $allPermsAny);
                 if ($userHas && $tokenOk) {
                     return [true, $allPermsAny, 'all-stores-permissions-any', ['store_ids' => [], 'store_mode' => 'all_stores']];
                 }
@@ -264,10 +264,10 @@ class AuthorizationResolver
      * Returns a full [authorized, required, grantedBy, meta] tuple.
      */
     private function evaluatePermsAgainst(
-        array  $rule,
-        array  $userPerms,
-        array  $tokenAbilities,
-        array  $storeIds,
+        array $rule,
+        array $userPerms,
+        array $tokenAbilities,
+        array $storeIds,
         string $mode
     ): array {
         $permsAny = (array) ($rule['permissions_any'] ?? []);
@@ -351,17 +351,18 @@ class AuthorizationResolver
 
         if (!is_array($sources)) {
             $sources = [
-                'path'  => ['store_id', 'storeId', 'store'],
+                'path' => ['store_id', 'storeId', 'store'],
                 'query' => ['store_id', 'store_ids', 'storeIds', 'stores', 'store'],
-                'body'  => ['store_id', 'store_ids', 'storeIds', 'stores', 'store', 'filters.store_ids', 'filters.store_id'],
+                'body' => ['store_id', 'store_ids', 'storeIds', 'stores', 'store', 'filters.store_ids', 'filters.store_id'],
+                'header' => ['X-Store-Id', 'X-Store-Ids', 'X-StoreId', 'X-StoreIds', 'store_id', 'store_ids', 'storeId', 'storeIds', 'store'],
             ];
         }
 
         $collected = [];
 
-        foreach (['path', 'query', 'body'] as $bucket) {
+        foreach (['path', 'query', 'body', 'header'] as $bucket) {
             $bucketData = $storeContext[$bucket] ?? [];
-            $paths      = (array) ($sources[$bucket] ?? []);
+            $paths = (array) ($sources[$bucket] ?? []);
 
             foreach ($paths as $dotPath) {
                 $val = $this->getByDotPath($bucketData, (string) $dotPath);
@@ -408,15 +409,56 @@ class AuthorizationResolver
             return [];
         }
 
+        // Flatten input into a simple list of scalar candidates
         $items = is_array($value) ? $value : [$value];
 
-        $result = [];
+        $flattened = [];
         foreach ($items as $item) {
+            if (is_array($item)) {
+                foreach ($item as $nested) {
+                    $flattened[] = $nested;
+                }
+                continue;
+            }
+
+            // Support comma-separated headers like: "10,11,12"
+            if (is_string($item) && str_contains($item, ',')) {
+                foreach (explode(',', $item) as $part) {
+                    $flattened[] = trim($part);
+                }
+                continue;
+            }
+
+            $flattened[] = $item;
+        }
+
+        $result = [];
+
+        foreach ($flattened as $item) {
+            if ($item === null || $item === '') {
+                continue;
+            }
+
             if (is_numeric($item) && (int) $item > 0) {
-                // Already an integer PK
+                // Integer PK
                 $result[] = (int) $item;
-            } elseif (is_string($item) && $item !== '') {
-                // String store code (e.g. "03795-00001") → resolve to integer PK
+                continue;
+            }
+
+            if (is_string($item)) {
+                $item = trim($item);
+
+                if ($item === '') {
+                    continue;
+                }
+
+                // Numeric string after trim
+                if (is_numeric($item) && (int) $item > 0) {
+                    $result[] = (int) $item;
+                    continue;
+                }
+
+                // Store code, e.g. "03795-00001"
                 $pk = $this->resolveStoreStringIdCached($item);
                 if ($pk !== null) {
                     $result[] = $pk;
@@ -424,7 +466,7 @@ class AuthorizationResolver
             }
         }
 
-        return $result;
+        return array_values(array_unique($result));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
