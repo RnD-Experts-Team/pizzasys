@@ -30,17 +30,16 @@ class AuthRuleManagementService
 
     public function createRule(array $data): AuthRule
     {
+        // Ensure methods are uppercase
         $methods = is_array($data['method']) ? $data['method'] : [$data['method']];
         $methods = array_map('strtoupper', $methods);
 
-        // Determine if this is a route or path rule
         $isRoute = isset($data['route_name']) && $data['route_name'];
         $routeName = $isRoute ? $data['route_name'] : null;
         $pathDsl = $isRoute ? null : ($data['path_dsl'] ?? null);
         $pathRegex = $pathDsl ? AuthRule::compilePathDslToRegex($pathDsl) : null;
 
-        // For now, create one rule per method
-        $rule = null;
+        // Create the rule for each method
         foreach ($methods as $method) {
             $rule = AuthRule::create([
                 'service' => $data['service'],
@@ -53,17 +52,22 @@ class AuthRuleManagementService
                 'permissions_all' => !empty($data['permissions_all']) ? array_values($data['permissions_all']) : null,
                 'priority' => $data['priority'] ?? 100,
                 'is_active' => $data['is_active'] ?? true,
+                'store_scope_mode' => $data['store_scope_mode'],
+                'store_id_sources' => $data['store_id_sources'] ?? null,
+                'store_match_policy' => $data['store_match_policy'] ?? null,
+                'store_allows_empty' => $data['store_allows_empty'] ?? false,
             ]);
         }
 
         return $rule; // Return the last created rule
     }
 
+
     public function updateRule(AuthRule $rule, array $data): AuthRule
     {
         $updateData = [];
 
-        foreach (['service', 'method', 'route_name', 'path_dsl', 'priority', 'is_active'] as $field) {
+        foreach (['service', 'method', 'route_name', 'path_dsl', 'priority', 'is_active', 'store_scope_mode', 'store_id_sources', 'store_match_policy', 'store_allows_empty'] as $field) {
             if (isset($data[$field])) {
                 $updateData[$field] = $data[$field];
             }
@@ -72,7 +76,6 @@ class AuthRuleManagementService
         if (isset($data['method'])) {
             $updateData['method'] = strtoupper($data['method']);
         }
-
         // Recompile regex if path_dsl changed
         if (isset($data['path_dsl'])) {
             $updateData['path_regex'] = AuthRule::compilePathDslToRegex($data['path_dsl']);

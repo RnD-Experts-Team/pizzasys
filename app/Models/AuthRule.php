@@ -19,22 +19,18 @@ class AuthRule extends Model
         'store_id_sources',
         'store_match_policy',
         'store_allows_empty',
-        'store_all_access_roles_any',
-        'store_all_access_permissions_any',
         'is_active',
         'priority',
     ];
 
     protected $casts = [
-        'roles_any'                     => 'array',
-        'permissions_any'               => 'array',
-        'permissions_all'               => 'array',
-        'store_id_sources'              => 'array',
-        'store_all_access_roles_any'    => 'array',
-        'store_all_access_permissions_any' => 'array',
-        'store_allows_empty'            => 'boolean',
-        'is_active'                     => 'boolean',
-        'priority'                      => 'integer',
+        'roles_any' => 'array',
+        'permissions_any' => 'array',
+        'permissions_all' => 'array',
+        'store_id_sources' => 'array',
+        'store_allows_empty' => 'boolean',
+        'is_active' => 'boolean',
+        'priority' => 'integer',
     ];
 
     protected static function booted(): void
@@ -52,22 +48,14 @@ class AuthRule extends Model
         });
     }
 
-    /**
-     * Compile our DSL to a safe anchored regex.
-     *
-     * DSL tokens:
-     *  - {id} or :id -> single segment wildcard ([^/]+)
-     *  - *          -> single segment wildcard ([^/]+)
-     *  - **         -> multi segment wildcard (.*) (can appear as its own segment or at end)
-     *
-     * Ensures literals are escaped (preg_quote) so dots etc. don't become regex operators.
-     */
     public static function compilePathDslToRegex(?string $dsl): ?string
     {
-        if (!$dsl) return null;
+        if (!$dsl)
+            return null;
 
         $p = trim($dsl);
-        if ($p === '') return null;
+        if ($p === '')
+            return null;
 
         if ($p[0] !== '/') {
             $p = '/' . $p;
@@ -78,7 +66,8 @@ class AuthRule extends Model
 
         $compiled = [];
         foreach ($segments as $seg) {
-            if ($seg === '') continue;
+            if ($seg === '')
+                continue;
 
             if ($seg === '**') {
                 $compiled[] = '.*';
@@ -88,7 +77,7 @@ class AuthRule extends Model
             // Replace tokens inside segment safely.
             // Handle full-segment wildcards first:
             if ($seg === '*') {
-                $compiled[] = '[^/]+';
+                $compiled[] = '[^/]+';  // single segment wildcard
                 continue;
             }
 
@@ -111,7 +100,7 @@ class AuthRule extends Model
             for ($i = 0; $i < $count; $i++) {
                 $rebuilt .= preg_quote($parts[$i], '#');
                 if ($i !== $count - 1) {
-                    $rebuilt .= '[^/]+';
+                    $rebuilt .= '[^/]+';  // wildcard for each segment
                 }
             }
 
