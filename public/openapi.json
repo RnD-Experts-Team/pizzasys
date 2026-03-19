@@ -2807,24 +2807,12 @@
                     },
                     "store_allows_empty": {
                         "type": "boolean"
-                    },
-                    "store_all_access_roles_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "store_all_access_permissions_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 }
             },
             "CreateAuthRuleRequest": {
                 "type": "object",
-                "required": ["service", "method"],
+                "required": ["service", "method", "store_scope_mode"],
                 "properties": {
                     "service": {
                         "type": "string",
@@ -2899,20 +2887,6 @@
                     "store_allows_empty": {
                         "type": "boolean",
                         "description": "Whether empty store IDs are allowed."
-                    },
-                    "store_all_access_roles_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "description": "Roles with access to all stores."
-                    },
-                    "store_all_access_permissions_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "description": "Permissions with access to all stores."
                     }
                 }
             },
@@ -2970,18 +2944,6 @@
                     },
                     "store_allows_empty": {
                         "type": "boolean"
-                    },
-                    "store_all_access_roles_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "store_all_access_permissions_any": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 }
             },
