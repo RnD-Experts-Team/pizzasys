@@ -44,4 +44,37 @@ class CreateAuthRuleRequest extends FormRequest
             'store_match_policy.in' => 'The store_match_policy must be one of: all, any.',
         ];
     }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            // Ensure at least one target is provided
+            if (!$this->path_dsl && !$this->route_name) {
+                $validator->errors()->add(
+                    'target',
+                    'Either path_dsl or route_name must be provided.'
+                );
+            }
+
+            // Ensure both targets are not provided simultaneously
+            if ($this->path_dsl && $this->route_name) {
+                $validator->errors()->add(
+                    'target',
+                    'Cannot specify both path_dsl and route_name. Choose one.'
+                );
+            }
+
+            // Ensure at least one authorization requirement is specified
+            $hasRoles = !empty($this->roles_any);
+            $hasPermsAny = !empty($this->permissions_any);
+            $hasPermsAll = !empty($this->permissions_all);
+
+            if (!$hasRoles && !$hasPermsAny && !$hasPermsAll) {
+                $validator->errors()->add(
+                    'authorization',
+                    'At least one authorization requirement must be specified (roles_any, permissions_any, or permissions_all).'
+                );
+            }
+        });
+    }
 }
