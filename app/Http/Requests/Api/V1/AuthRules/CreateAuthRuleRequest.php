@@ -27,7 +27,7 @@ class CreateAuthRuleRequest extends FormRequest
             'priority' => 'sometimes|integer|min:1|max:1000',
             'is_active' => 'sometimes|boolean',
             'store_scope_mode' => 'required|string|in:none,scoped,all_stores',
-            'store_id_sources' => 'required_if:store_scope_mode,scoped|nullable|array',
+            'store_id_sources' => 'nullable|array',
             'store_match_policy' => 'required_if:store_scope_mode,scoped|nullable|string|in:all,any',
             'store_allows_empty' => 'sometimes|boolean',
         ];
@@ -40,7 +40,6 @@ class CreateAuthRuleRequest extends FormRequest
             'route_name.required_without' => 'Either route_name or path_dsl is required.',
             'store_scope_mode.required' => 'The store_scope_mode is required for scoped rules.',
             'store_scope_mode.in' => 'The store_scope_mode must be one of: none, scoped, all_stores.',
-            'store_id_sources.required_if' => 'The store_id_sources is required if store_scope_mode is scoped.',
             'store_match_policy.required_if' => 'The store_match_policy is required if store_scope_mode is scoped.',
             'store_match_policy.in' => 'The store_match_policy must be one of: all, any.',
         ];
