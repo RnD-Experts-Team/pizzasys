@@ -1,26 +1,46 @@
 <?php
 
+$devMode = (int) env('DEV_MODE', 0) === 1;
+
+$authSubject = $devMode
+    ? 'auth.testing.v1.>'
+    : 'auth.v1.>';
+
+$notificationsSubject = $devMode
+    ? 'notifications.testing.v1.>'
+    : 'notifications.v1.>';
+
 return [
+
+    'dev_mode' => $devMode,
+
     'host' => env('NATS_HOST', '127.0.0.1'),
     'port' => (int) env('NATS_PORT', 4222),
+
     'user' => env('NATS_USER'),
     'pass' => env('NATS_PASS'),
     'token' => env('NATS_TOKEN'),
 
-    /**
-     * Publish targets
-     * These are the streams this service is allowed to publish to.
+    /*
+     |--------------------------------------------------------------------------
+     | Publishers
+     |--------------------------------------------------------------------------
      */
     'publishers' => [
         [
-            'name' => env('NATS_AUTH_STREAM', 'AUTH_EVENTS'),
-            'subjects' => ['auth.v1.>'],
+            'name' => $devMode
+                ? env('NATS_NOTIFICATIONS_STREAM', 'NOTIFICATIONS_TESTING_EVENTS')
+                : env('NATS_NOTIFICATIONS_STREAM', 'NOTIFICATIONS_EVENTS'),
+            'subjects' => [$notificationsSubject],
         ],
         [
-            'name' => env('NATS_NOTIFICATIONS_STREAM', 'NOTIFICATIONS_EVENTS'),
-            'subjects' => ['notifications.v1.>'],
+            'name' => $devMode
+                ? env('NATS_AUTH_STREAM', 'AUTH_TESTING_EVENTS')
+                : env('NATS_AUTH_STREAM', 'AUTH_EVENTS'),
+            'subjects' => [$authSubject],
         ],
     ],
+
 
     /**
      * Streams consumed by THIS service.
