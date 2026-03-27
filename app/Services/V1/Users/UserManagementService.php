@@ -11,7 +11,7 @@ use App\Models\UserRoleStore;
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
 use App\Services\AuthEvents\ModelChangeSet;
-use App\Jobs\PublishAuthOutboxEventJob;
+use App\Jobs\PublishOutboxEventJob;
 
 class UserManagementService
 {
@@ -157,18 +157,18 @@ class UserManagementService
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
-        $outbox  = app(AuthOutboxService::class);
+        $outbox = app(AuthOutboxService::class);
 
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
+        DB::afterCommit(fn() => PublishOutboxEventJob::dispatch($row->id));
     }
 
     private function diffAddedRemoved(array $from, array $to): array
     {
         $from = array_values(array_unique($from));
-        $to   = array_values(array_unique($to));
+        $to = array_values(array_unique($to));
 
         $added = array_values(array_diff($to, $from));
         $removed = array_values(array_diff($from, $to));
@@ -271,7 +271,7 @@ class UserManagementService
             if (isset($data['roles'])) {
                 $before = $user->roles()->pluck('name')->values()->toArray();
                 $user->syncRoles($data['roles']);
-                $after  = $user->fresh()->roles()->pluck('name')->values()->toArray();
+                $after = $user->fresh()->roles()->pluck('name')->values()->toArray();
 
                 $diff = $this->diffAddedRemoved($before, $after);
 
@@ -285,7 +285,7 @@ class UserManagementService
             if (isset($data['permissions'])) {
                 $before = $user->permissions()->pluck('name')->values()->toArray();
                 $user->syncPermissions($data['permissions']);
-                $after  = $user->fresh()->permissions()->pluck('name')->values()->toArray();
+                $after = $user->fresh()->permissions()->pluck('name')->values()->toArray();
 
                 $diff = $this->diffAddedRemoved($before, $after);
 
@@ -373,7 +373,7 @@ class UserManagementService
         return DB::transaction(function () use ($user, $roles, $request) {
             $before = $user->roles()->pluck('name')->values()->toArray();
             $user->syncRoles($roles);
-            $after  = $user->fresh()->roles()->pluck('name')->values()->toArray();
+            $after = $user->fresh()->roles()->pluck('name')->values()->toArray();
 
             $diff = $this->diffAddedRemoved($before, $after);
 
@@ -421,7 +421,7 @@ class UserManagementService
         return DB::transaction(function () use ($user, $permissions, $request) {
             $before = $user->permissions()->pluck('name')->values()->toArray();
             $user->syncPermissions($permissions);
-            $after  = $user->fresh()->permissions()->pluck('name')->values()->toArray();
+            $after = $user->fresh()->permissions()->pluck('name')->values()->toArray();
 
             $diff = $this->diffAddedRemoved($before, $after);
 

@@ -7,10 +7,16 @@ use App\Models\Otp;
 use App\Mail\OtpMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use App\Models\Role;
 use App\Models\UserRoleStore;
 use App\Models\AuthRule;
+use App\Services\AuthEvents\AuthEventFactory;
+use App\Services\AuthEvents\AuthOutboxService;
+use App\Jobs\PublishOutboxEventJob;
 
 class AuthService
 {
@@ -19,7 +25,8 @@ class AuthService
         string $password,
         ?array $device = null,
         ?string $fcmToken = null,
-        string $clientType = 'web'
+        string $clientType = 'web',
+        ?Request $request = null
     ): array {
         $user = User::where('email', $email)->first();
 
@@ -31,7 +38,13 @@ class AuthService
         $token = $tokenResult->plainTextToken;
 
         if ($clientType === 'mobile' || $device || $fcmToken) {
-            $this->upsertUserDevice($user, $device, $fcmToken);
+            $normalizedDevice = $this->upsertUserDevice($user, $device, $fcmToken);
+
+            $this->emitUserDeviceUpsertedEvent(
+                userId: (int) $user->id,
+                device: $normalizedDevice,
+                request: $request
+            );
         }
 
         $userData = $this->getUserCompleteData($user);
@@ -43,7 +56,33 @@ class AuthService
         ];
     }
 
-    protected function upsertUserDevice(User $user, ?array $device, ?string $fcmToken): void
+    private function emitUserDeviceUpsertedEvent(int $userId, array $device, ?Request $request = null): void
+    {
+        $this->recordEvent('auth.v1.user.device.upserted', [
+            'user_id' => $userId,
+            'device' => [
+                'device_id' => data_get($device, 'device_id'),
+                'platform' => data_get($device, 'platform'),
+                'model' => data_get($device, 'model'),
+                'os_version' => data_get($device, 'os_version'),
+                'app_version' => data_get($device, 'app_version'),
+                'fcm_token' => data_get($device, 'fcm_token'),
+            ],
+        ], $request);
+    }
+
+    private function recordEvent(string $subject, array $data, ?Request $request = null): void
+    {
+        $factory = app(AuthEventFactory::class);
+        $outbox = app(AuthOutboxService::class);
+
+        $envelope = $factory->make($subject, $data, $request);
+        $row = $outbox->record($subject, $envelope);
+
+        DB::afterCommit(fn() => PublishOutboxEventJob::dispatch($row->id));
+    }
+
+    protected function upsertUserDevice(User $user, ?array $device, ?string $fcmToken): array
     {
         $deviceId = data_get($device, 'device_id');
 
@@ -75,28 +114,61 @@ class AuthService
 
         if ($existing) {
             $existing->update($payload);
-        } else {
-            $user->devices()->create($payload);
+            $existing->refresh();
+
+            return [
+                'device_id' => $existing->device_id,
+                'platform' => $existing->platform,
+                'model' => $existing->model,
+                'os_version' => $existing->os_version,
+                'app_version' => $existing->app_version,
+                'fcm_token' => $existing->fcm_token,
+            ];
         }
+
+        $created = $user->devices()->create($payload);
+        $created->refresh();
+
+        return [
+            'device_id' => $created->device_id,
+            'platform' => $created->platform,
+            'model' => $created->model,
+            'os_version' => $created->os_version,
+            'app_version' => $created->app_version,
+            'fcm_token' => $created->fcm_token,
+        ];
     }
 
-    public function sendOtp(string $email, string $type): void
+    public function sendOtp(string $email, string $type, ?Request $request = null): void
     {
-        Otp::where('email', $email)
-            ->where('type', $type)
-            ->where('used', false)
-            ->delete();
+        DB::transaction(function () use ($email, $type, $request) {
+            Otp::where('email', $email)
+                ->where('type', $type)
+                ->where('used', false)
+                ->delete();
 
-        $otpCode = Otp::generateOtp();
+            $otpCode = Otp::generateOtp();
 
-        Otp::create([
-            'email' => $email,
-            'otp' => $otpCode,
-            'type' => $type,
-            'expires_at' => Carbon::now()->addMinutes(10),
-        ]);
+            Otp::create([
+                'email' => $email,
+                'otp' => $otpCode,
+                'type' => $type,
+                'expires_at' => Carbon::now()->addMinutes(10),
+            ]);
 
-        Mail::to($email)->send(new OtpMail($otpCode, $type));
+            $this->recordEvent('notifications.v1.email.send', [
+                'template' => 'otp',
+                'users' => [
+                    [
+                        'email' => $email,
+                        'data' => [
+                            'otp' => $otpCode,
+                            'type' => $type,
+                        ],
+                    ],
+                ],
+            ], $request);
+        });
     }
 
     public function verifyOtp(string $email, string $otp, string $type): bool
@@ -553,20 +625,20 @@ class AuthService
 
             $storeAssignments[$storeId]['all_permissions_from_store_roles'] =
                 $storeAssignments[$storeId]['all_permissions_from_store_roles']
-                ->merge($rolePermissions);
+                    ->merge($rolePermissions);
         }
 
         // Normalize store permissions
         $storeAssignments = collect($storeAssignments)->map(function ($store) {
             $store['all_permissions_from_store_roles'] =
                 $store['all_permissions_from_store_roles']
-                ->unique('id')
-                ->map(fn($perm) => [
-                    'id' => $perm->id,
-                    'name' => $perm->name,
-                    'guard_name' => $perm->guard_name,
-                ])
-                ->values();
+                    ->unique('id')
+                    ->map(fn($perm) => [
+                        'id' => $perm->id,
+                        'name' => $perm->name,
+                        'guard_name' => $perm->guard_name,
+                    ])
+                    ->values();
 
             return $store;
         })->values();

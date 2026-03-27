@@ -7,29 +7,27 @@ return [
     'pass' => env('NATS_PASS'),
     'token' => env('NATS_TOKEN'),
 
-    'jetstream' => [
-        'enabled' => true,
-        'stream' => env('NATS_AUTH_STREAM', 'AUTH_EVENTS'),
-        'subjects' => ['auth.v1.>'],
+    /**
+     * Publish targets
+     * These are the streams this service is allowed to publish to.
+     */
+    'publishers' => [
+        [
+            'name' => env('NATS_AUTH_STREAM', 'AUTH_EVENTS'),
+            'subjects' => ['auth.v1.>'],
+        ],
+        [
+            'name' => env('NATS_NOTIFICATIONS_STREAM', 'NOTIFICATIONS_EVENTS'),
+            'subjects' => ['notifications.v1.>'],
+        ],
     ],
 
     /**
-     * Add streams here as new projects appear.
-     * Each stream gets its own durable pull consumer.
+     * Streams consumed by THIS service.
+     * In auth service this may be empty if auth only publishes.
      */
     'streams' => [
-        [
-            'name' => env('NATS_AUTH_STREAM', 'AUTH_EVENTS'),
-            'durable' => env('NATS_AUTH_DURABLE', 'QA_AUTH_CONSUMER'),
-            'filter_subject' => 'auth.v1.>', // match your stream subjects
-        ],
-
-        // Example additional stream later:
-        // [
-        //   'name' => env('NATS_PROJECT_STREAM', 'PROJECT_EVENTS'),
-        //   'durable' => env('NATS_PROJECT_DURABLE', 'QA_PROJECT_CONSUMER'),
-        //   'filter_subject' => 'project.v1.>',
-        // ],
+        // Usually auth service does not consume in this setup.
     ],
 
     'pull' => [
