@@ -162,7 +162,7 @@ class UserManagementService
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        DB::afterCommit(fn() => PublishOutboxEventJob::dispatch($row->id));
+        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
     }
 
     private function diffAddedRemoved(array $from, array $to): array
