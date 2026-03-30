@@ -10,23 +10,27 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class PublishAuthOutboxEventJob implements ShouldQueue
+class PublishOutboxEventJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 10;
 
-    public function __construct(public string $outboxEventId) {}
+    public function __construct(public string $outboxEventId)
+    {
+    }
 
     public function handle(JetStreamPublisher $publisher): void
     {
-        $event = AuthOutboxEvent::query()->where('id', $this->outboxEventId)->firstOrFail();
+        $event = AuthOutboxEvent::query()
+            ->where('id', $this->outboxEventId)
+            ->firstOrFail();
 
         if ($event->published_at) {
-            return; // idempotent job
+            return;
         }
 
-        $event->attempts = $event->attempts + 1;
+        $event->attempts = (int) $event->attempts + 1;
         $event->save();
 
         $publisher->publish($event->subject, $event->payload);
@@ -40,6 +44,8 @@ class PublishAuthOutboxEventJob implements ShouldQueue
     {
         AuthOutboxEvent::query()
             ->where('id', $this->outboxEventId)
-            ->update(['last_error' => $e->getMessage()]);
+            ->update([
+                'last_error' => $e->getMessage(),
+            ]);
     }
 }
