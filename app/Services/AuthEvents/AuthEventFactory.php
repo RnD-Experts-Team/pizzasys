@@ -13,15 +13,18 @@ class AuthEventFactory
         ?Request $request = null,
         array $metaOverrides = []
     ): array {
+
+        $type = $this->applyEnvironmentPrefix($type);
+
         $now = now()->utc()->toIso8601String();
 
         $meta = array_merge([
             'correlation_id' => $request?->headers->get('X-Correlation-Id') ?? (string) Str::uuid(),
-            'causation_id'   => $request?->headers->get('X-Causation-Id'),
-            'actor_user_id'  => optional($request?->user())->id,
-            'actor_type'     => $request?->user() ? 'user' : 'service_client',
-            'actor_ip'       => $request?->ip(),
-            'user_agent'     => $request?->userAgent(),
+            'causation_id' => $request?->headers->get('X-Causation-Id'),
+            'actor_user_id' => optional($request?->user())->id,
+            'actor_type' => $request?->user() ? 'user' : 'service_client',
+            'actor_ip' => $request?->ip(),
+            'user_agent' => $request?->userAgent(),
         ], $metaOverrides);
 
         return [
@@ -35,5 +38,23 @@ class AuthEventFactory
             'data' => $data,
             'meta' => $meta,
         ];
+    }
+
+    private function applyEnvironmentPrefix(string $subject): string
+    {
+        if (!config('nats.dev_mode')) {
+            return $subject;
+        }
+
+        // Only transform auth + notifications domains
+        if (str_starts_with($subject, 'auth.v1.')) {
+            return str_replace('auth.v1.', 'auth.testing.v1.', $subject);
+        }
+
+        if (str_starts_with($subject, 'notifications.v1.')) {
+            return str_replace('notifications.v1.', 'notifications.testing.v1.', $subject);
+        }
+
+        return $subject;
     }
 }

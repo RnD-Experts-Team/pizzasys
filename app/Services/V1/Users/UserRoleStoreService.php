@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
-use App\Jobs\PublishAuthOutboxEventJob;
+use App\Jobs\PublishOutboxEventJob;
 
 class UserRoleStoreService
 {
@@ -20,7 +20,7 @@ class UserRoleStoreService
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
+        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
     }
 
     public function assignUserRoleStore(array $data, ?Request $request = null): UserRoleStore
