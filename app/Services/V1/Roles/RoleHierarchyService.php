@@ -11,19 +11,19 @@ use Illuminate\Http\Request;
 
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
-use App\Jobs\PublishAuthOutboxEventJob;
+use App\Jobs\PublishOutboxEventJob;
 
 class RoleHierarchyService
 {
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
-        $outbox  = app(AuthOutboxService::class);
+        $outbox = app(AuthOutboxService::class);
 
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
+        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
     }
 
     public function createHierarchy(array $data, ?Request $request = null): RoleHierarchy
@@ -151,9 +151,12 @@ class RoleHierarchyService
     {
         $errors = [];
 
-        if (!Role::find($higherRoleId)) $errors[] = 'Higher role does not exist';
-        if (!Role::find($lowerRoleId)) $errors[] = 'Lower role does not exist';
-        if (!Store::find($storeId)) $errors[] = 'Store does not exist';
+        if (!Role::find($higherRoleId))
+            $errors[] = 'Higher role does not exist';
+        if (!Role::find($lowerRoleId))
+            $errors[] = 'Lower role does not exist';
+        if (!Store::find($storeId))
+            $errors[] = 'Store does not exist';
 
         if ($higherRoleId === $lowerRoleId) {
             $errors[] = 'A role cannot manage itself';
@@ -190,7 +193,7 @@ class RoleHierarchyService
         $adjacencyList = [];
         foreach ($allHierarchies as $hierarchy) {
             $higher = (int) $hierarchy['higher_role_id'];
-            $lower  = (int) $hierarchy['lower_role_id'];
+            $lower = (int) $hierarchy['lower_role_id'];
 
             $adjacencyList[$higher] ??= [];
             $adjacencyList[$higher][] = $lower;

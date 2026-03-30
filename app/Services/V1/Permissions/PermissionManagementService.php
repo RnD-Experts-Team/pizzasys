@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
 use App\Services\AuthEvents\ModelChangeSet;
-use App\Jobs\PublishAuthOutboxEventJob;
+use App\Jobs\PublishOutboxEventJob;
 
 class PermissionManagementService
 {
@@ -19,12 +19,12 @@ class PermissionManagementService
     private function recordEvent(string $subject, array $data, ?Request $request = null): void
     {
         $factory = app(AuthEventFactory::class);
-        $outbox  = app(AuthOutboxService::class);
+        $outbox = app(AuthOutboxService::class);
 
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        DB::afterCommit(fn() => PublishAuthOutboxEventJob::dispatch($row->id));
+        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
     }
 
     public function getAllPermissions($perPage = 15, $search = null)
