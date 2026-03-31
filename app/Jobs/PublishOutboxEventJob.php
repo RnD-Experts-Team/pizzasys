@@ -22,22 +22,30 @@ class PublishOutboxEventJob implements ShouldQueue
 
     public function handle(JetStreamPublisher $publisher): void
     {
-        $event = AuthOutboxEvent::query()
-            ->where('id', $this->outboxEventId)
-            ->firstOrFail();
+        $event = AuthOutboxEvent::find($this->outboxEventId);
 
-        if ($event->published_at) {
+        if (!$event)
             return;
+
+        if ($event->published_at)
+            return;
+
+        try {
+            $publisher->publish($event->subject, $event->payload);
+
+            $event->update([
+                'published_at' => now(),
+                'last_error' => null,
+            ]);
+        } catch (\Throwable $e) {
+            $event->increment('attempts');
+
+            $event->update([
+                'last_error' => $e->getMessage(),
+            ]);
+
+            throw $e; // let Laravel retry
         }
-
-        $event->attempts = (int) $event->attempts + 1;
-        $event->save();
-
-        $publisher->publish($event->subject, $event->payload);
-
-        $event->published_at = now();
-        $event->last_error = null;
-        $event->save();
     }
 
     public function failed(\Throwable $e): void
