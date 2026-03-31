@@ -24,7 +24,7 @@ class RoleManagementService
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
+        PublishOutboxEventJob::dispatch($row->id);
     }
 
     public function getAllRoles($perPage = 15, $search = null)

@@ -79,7 +79,7 @@ class AuthService
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
+        PublishOutboxEventJob::dispatch($row->id);
     }
 
     protected function upsertUserDevice(User $user, ?array $device, ?string $fcmToken): array

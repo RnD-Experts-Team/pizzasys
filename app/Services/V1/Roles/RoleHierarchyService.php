@@ -23,7 +23,7 @@ class RoleHierarchyService
         $envelope = $factory->make($subject, $data, $request);
         $row = $outbox->record($subject, $envelope);
 
-        PublishOutboxEventJob::dispatch($row->id)->afterCommit();
+        PublishOutboxEventJob::dispatch($row->id);
     }
 
     public function createHierarchy(array $data, ?Request $request = null): RoleHierarchy
