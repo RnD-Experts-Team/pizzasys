@@ -158,6 +158,7 @@ class AuthService
 
             $this->recordEvent('notifications.v1.email.send', [
                 'template' => 'otp',
+                'subject' => 'Your OTP Code',
                 'users' => [
                     [
                         'email' => $email,
