@@ -2,28 +2,44 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\PublishOutboxEventJob;
 use App\Models\AuthOutboxEvent;
+use App\Services\Nats\JetStreamPublisher;
 use Illuminate\Console\Command;
 
 class PublishPendingOutboxCommand extends Command
 {
     protected $signature = 'outbox:publish-pending {--chunk=100}';
-    protected $description = 'Dispatch jobs for unpublished outbox events';
+    protected $description = 'Publish unpublished outbox events directly';
 
-    public function handle(): int
+    public function handle(JetStreamPublisher $publisher): int
     {
         $chunkSize = (int) $this->option('chunk');
 
         AuthOutboxEvent::query()
             ->whereNull('published_at')
-            ->orderBy('created_at')
-            ->chunkById($chunkSize, function ($events) {
+            ->orderBy('id')
+            ->chunkById($chunkSize, function ($events) use ($publisher) {
                 foreach ($events as $event) {
-                    PublishOutboxEventJob::dispatch($event->id);
+                    try {
+                        $publisher->publish($event->subject, $event->payload);
+
+                        $event->update([
+                            'published_at' => now(),
+                            'last_error' => null,
+                        ]);
+                    } catch (\Throwable $e) {
+                        $event->increment('attempts');
+
+                        $event->update([
+                            'last_error' => $e->getMessage(),
+                        ]);
+
+                        $this->error("Failed to publish outbox event {$event->id}: {$e->getMessage()}");
+                    }
                 }
             });
 
+        $this->info('Pending outbox events processed.');
 
         return self::SUCCESS;
     }
