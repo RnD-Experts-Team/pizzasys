@@ -17,6 +17,11 @@ class User extends Authenticatable
         'email',
         'password',
         'email_verified_at',
+        'image_path',
+    ];
+
+    protected $appends = [
+        'image_url',
     ];
 
     protected $hidden = [
@@ -30,6 +35,31 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        $path = $this->image_path;
+
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, '/storage/')) {
+            return url($path);
+        }
+
+        $baseUrl = rtrim((string) config('filesystems.disks.public.url'), '/');
+
+        if ($baseUrl === '') {
+            return url($path);
+        }
+
+        return $baseUrl . '/' . ltrim($path, '/');
     }
 
     public function roleTenancies()
