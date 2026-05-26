@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\V1\Auth\VerifyOtpRequest;
 use App\Http\Requests\Api\V1\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\V1\Auth\ResetPasswordRequest;
+use App\Http\Requests\Api\V1\Auth\UpdateMeRequest;
 use App\Services\V1\Auth\AuthService;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -185,6 +186,22 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $userData = $this->authService->getUserCompleteData($user);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $userData
+            ]
+        ]);
+    }
+
+    public function updateMe(UpdateMeRequest $request): JsonResponse
+    {
+        $userData = $this->authService->updateMe(
+            $request->user(),
+            $request->validated(),
+            $request->file('image')
+        );
 
         return response()->json([
             'success' => true,

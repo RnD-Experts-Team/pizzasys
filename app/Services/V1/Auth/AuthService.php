@@ -8,7 +8,9 @@ use App\Mail\OtpMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use App\Models\Role;
@@ -239,6 +241,49 @@ class AuthService
         ];
     }
 
+    public function updateMe(User $user, array $data, ?UploadedFile $imageFile = null): array
+    {
+        $storedPath = null;
+        $oldImagePath = $user->image_path;
+        $removeImage = !empty($data['remove_image'] ?? false);
+        $deleteOldPath = null;
+
+        $updateData = [
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ];
+
+        if (!empty($data['password'] ?? null)) {
+            $updateData['password'] = Hash::make($data['password']);
+        }
+
+        if ($imageFile) {
+            $storedPath = Storage::disk('public')->putFile('avatars', $imageFile);
+            $updateData['image_path'] = $storedPath;
+            $deleteOldPath = $oldImagePath;
+        } elseif ($removeImage) {
+            $updateData['image_path'] = null;
+            $deleteOldPath = $oldImagePath;
+        }
+
+        $user->update($updateData);
+        $user->refresh();
+
+        if ($deleteOldPath && $deleteOldPath !== $storedPath) {
+            if (!str_starts_with($deleteOldPath, 'http://') && !str_starts_with($deleteOldPath, 'https://')) {
+                $diskPath = ltrim($deleteOldPath, '/');
+
+                if (str_starts_with($diskPath, 'storage/')) {
+                    $diskPath = substr($diskPath, strlen('storage/'));
+                }
+
+                Storage::disk('public')->delete($diskPath);
+            }
+        }
+
+        return $this->getUserCompleteData($user);
+    }
+
     public function getUserCompleteData(User $user): array
     {
         $user->load(['roles.permissions', 'permissions']);
@@ -310,6 +355,8 @@ class AuthService
             'id' => (int) $user->id,
             'name' => (string) $user->name,
             'email' => (string) $user->email,
+            'image_path' => $user->image_path,
+            'image_url' => $user->image_url,
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,

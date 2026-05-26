@@ -17,6 +17,7 @@ class CreateUserRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'image_path' => 'sometimes|nullable|string|max:2048',
             'roles' => 'sometimes|array',
             'roles.*' => 'string|exists:roles,name',
             'permissions' => 'sometimes|array',

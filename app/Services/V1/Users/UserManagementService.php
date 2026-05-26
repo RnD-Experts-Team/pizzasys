@@ -44,6 +44,8 @@ class UserManagementService
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'image_path' => $user->image_path,
+                'image_url' => $user->image_url,
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
@@ -123,6 +125,8 @@ class UserManagementService
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'image_path' => $user->image_path,
+            'image_url' => $user->image_url,
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
@@ -193,6 +197,7 @@ class UserManagementService
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'email_verified_at' => now(),
+                'image_path' => $data['image_path'] ?? null,
             ]);
 
             if (isset($data['roles'])) {
@@ -263,6 +268,10 @@ class UserManagementService
                 $updateData['password'] = Hash::make($data['password']);
             }
 
+            if (!empty($data['image_path'] ?? null)) {
+                $updateData['image_path'] = $data['image_path'];
+            }
+
             if (!empty($updateData)) {
                 $user->update($updateData);
             }
@@ -303,7 +312,7 @@ class UserManagementService
             $fieldChanges = ModelChangeSet::fromArrays(
                 $old,
                 $new,
-                ['name', 'email', 'email_verified_at'] // DO NOT include password in events
+                ['name', 'email', 'email_verified_at', 'image_path'] // DO NOT include password in events
             );
 
             if (!empty($fieldChanges)) {

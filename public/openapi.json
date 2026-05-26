@@ -283,6 +283,43 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Update authenticated user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateMeRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
 
@@ -2071,6 +2108,8 @@
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
                     "email": { "type": "string" },
+                    "image_path": { "type": ["string", "null"] },
+                    "image_url": { "type": ["string", "null"] },
                     "email_verified_at": {
                         "type": ["string", "null"],
                         "format": "date-time"
@@ -2289,6 +2328,8 @@
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
                     "email": { "type": "string" },
+                    "image_path": { "type": ["string", "null"] },
+                    "image_url": { "type": ["string", "null"] },
                     "email_verified_at": {
                         "type": ["string", "null"],
                         "format": "date-time"
@@ -2344,6 +2385,7 @@
                     "email": { "type": "string", "format": "email" },
                     "password": { "type": "string" },
                     "password_confirmation": { "type": "string" },
+                    "image_path": { "type": ["string", "null"] },
                     "roles": {
                         "type": "array",
                         "items": { "type": "string" }
@@ -2362,6 +2404,7 @@
                     "email": { "type": "string", "format": "email" },
                     "password": { "type": "string" },
                     "password_confirmation": { "type": "string" },
+                    "image_path": { "type": ["string", "null"] },
                     "roles": {
                         "type": "array",
                         "items": { "type": "string" }
@@ -2370,6 +2413,19 @@
                         "type": "array",
                         "items": { "type": "string" }
                     }
+                }
+            },
+
+            "UpdateMeRequest": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                    "name": { "type": "string" },
+                    "email": { "type": "string", "format": "email" },
+                    "password": { "type": "string" },
+                    "password_confirmation": { "type": "string" },
+                    "image": { "type": "string", "format": "binary" },
+                    "remove_image": { "type": "boolean" }
                 }
             },
 

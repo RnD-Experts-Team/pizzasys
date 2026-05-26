@@ -24,6 +24,7 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users')->ignore($this->user)
             ],
             'password' => 'sometimes|string|min:8|confirmed',
+            'image_path' => 'sometimes|nullable|string|max:2048',
             'roles' => 'sometimes|array',
             'roles.*' => 'string|exists:roles,name',
             'permissions' => 'sometimes|array',
