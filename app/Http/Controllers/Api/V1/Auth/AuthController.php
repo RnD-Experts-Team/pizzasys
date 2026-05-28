@@ -200,7 +200,8 @@ class AuthController extends Controller
         $userData = $this->authService->updateMe(
             $request->user(),
             $request->validated(),
-            $request->file('image')
+            $request->file('image'),
+            $request
         );
 
         return response()->json([
