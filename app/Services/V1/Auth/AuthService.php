@@ -18,6 +18,7 @@ use App\Models\UserRoleStore;
 use App\Models\AuthRule;
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
+use App\Services\AuthEvents\ModelChangeSet;
 use App\Jobs\PublishOutboxEventJob;
 
 class AuthService
@@ -241,8 +242,9 @@ class AuthService
         ];
     }
 
-    public function updateMe(User $user, array $data, ?UploadedFile $imageFile = null): array
+    public function updateMe(User $user, array $data, ?UploadedFile $imageFile = null, ?Request $request = null): array
     {
+        $old = $user->replicate()->toArray();
         $storedPath = null;
         $oldImagePath = $user->image_path;
         $removeImage = !empty($data['remove_image'] ?? false);
@@ -268,6 +270,19 @@ class AuthService
 
         $user->update($updateData);
         $user->refresh();
+
+        $changedFields = ModelChangeSet::fromArrays(
+            $old,
+            $user->toArray(),
+            ['name', 'email', 'email_verified_at', 'image_path']
+        );
+
+        if (!empty($changedFields)) {
+            $this->recordEvent('auth.v1.user.updated', [
+                'user_id' => $user->id,
+                'changed_fields' => $changedFields,
+            ], $request);
+        }
 
         if ($deleteOldPath && $deleteOldPath !== $storedPath) {
             if (!str_starts_with($deleteOldPath, 'http://') && !str_starts_with($deleteOldPath, 'https://')) {
