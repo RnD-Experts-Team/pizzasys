@@ -354,7 +354,7 @@ class AuthorizationResolver
                 'path' => ['store_id', 'storeId', 'store'],
                 'query' => ['store_id', 'store_ids', 'storeId', 'storeIds', 'stores', 'store'],
                 'body' => ['store_id', 'store_ids', 'storeIds', 'stores', 'store', 'filters.store_ids', 'filters.store_id'],
-                'header' => ['X-Store-Id', 'X-Store-Ids', 'X-StoreId', 'X-StoreIds', 'store_id', 'store_ids', 'storeId', 'storeIds', 'store'],
+                'header' => ['X-Store-Id', 'X-Store-Ids', 'X-StoreId', 'X-StoreIds', 'store_id', 'store_ids', 'storeId', 'storeIds', 'store', 'stores'],
             ];
         }
 
