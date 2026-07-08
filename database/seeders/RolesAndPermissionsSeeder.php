@@ -38,7 +38,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'manage role hierarchy',
 
-            'manager entities and categories of qa'
+            'manager entities and categories of qa',
+
+            'impersonate users'
         ];
 
         foreach ($permissions as $permission) {

@@ -44,6 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me', [AuthController::class, 'updateMe']);
         Route::get('/general-overview', [AuthController::class, 'authorizationOverview']);
+
+        Route::post('/impersonate/{user}', [AuthController::class, 'impersonate'])
+            ->middleware('permission:impersonate users');
     });
 
     /*
