@@ -14,10 +14,10 @@ class EmployeeManagementService
     public function getAllEmployees(
         int $perPage = 15,
         ?string $search = null,
-        ?string $storeId = null,
+        ?string $storeNumber = null,
         ?bool $active = null
     ) {
-        $query = Employee::query()->with(['roles', 'roleTenancies']);
+        $query = Employee::query()->with(['roles', 'stores']);
 
         if ($search !== null && $search !== '') {
             $query->where(function ($q) use ($search) {
@@ -31,8 +31,10 @@ class EmployeeManagementService
             });
         }
 
-        if ($storeId !== null && $storeId !== '') {
-            $query->where('store_id', $storeId);
+        if ($storeNumber !== null && $storeNumber !== '') {
+            $query->whereHas('stores', function ($q) use ($storeNumber) {
+                $q->where('store_number', $storeNumber);
+            });
         }
 
         if ($active !== null) {
@@ -47,8 +49,7 @@ class EmployeeManagementService
         return $employee->load([
             'roles.permissions',
             'permissions',
-            'roleTenancies.role',
-            'roleTenancies.store',
+            'stores',
             'devices',
         ]);
     }
@@ -64,36 +65,5 @@ class EmployeeManagementService
             'employee_id' => (int) $employee->id,
             'updated_at' => now()->utc()->toIso8601String(),
         ], $request);
-    }
-
-    /**
-     * NOTE: hiring events remain the source of truth for `active` —
-     * the next hiring.v1.employee.updated event overwrites manual changes.
-     */
-    public function activate(Employee $employee, ?Request $request = null): Employee
-    {
-        $employee->update(['active' => true]);
-
-        $this->recordEvent('auth.v1.employee.activated', [
-            'employee_id' => (int) $employee->id,
-            'at' => now()->utc()->toIso8601String(),
-        ], $request);
-
-        return $employee->refresh();
-    }
-
-    public function deactivate(Employee $employee, ?Request $request = null): Employee
-    {
-        $employee->update(['active' => false]);
-
-        // Deactivation revokes every issued token.
-        $employee->tokens()->delete();
-
-        $this->recordEvent('auth.v1.employee.deactivated', [
-            'employee_id' => (int) $employee->id,
-            'at' => now()->utc()->toIso8601String(),
-        ], $request);
-
-        return $employee->refresh();
     }
 }

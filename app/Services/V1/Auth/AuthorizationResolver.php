@@ -528,25 +528,52 @@ class AuthorizationResolver
     }
 
     /**
-     * Effective permissions the actor (user or employee) holds specifically
-     * for one store. Uses only store-scoped role hierarchy — NOT global
-     * Spatie permissions.
+     * Effective permissions the actor holds for one store.
+     *
+     *  - Users: store-scoped role hierarchy (user_role_store) — NOT global perms.
+     *  - Employees: their GLOBAL permissions, but ONLY if they are an active
+     *    member of that store (employee_stores). Employees have no store-roles;
+     *    membership gates the store dimension, global roles supply the perms.
      */
     private function getEffectivePermissionsForUserStoreCached(Model $actor, int $storeId): array
     {
-        $actorClass = get_class($actor);
         $actorId = (int) $actor->getKey();
 
-        // Cache key stays byte-identical to the historical one for users.
-        $key = $actor instanceof Employee
-            ? "authz:eff_perms:e{$actorId}:st{$storeId}"
-            : "authz:eff_perms:u{$actorId}:st{$storeId}";
+        if ($actor instanceof Employee) {
+            $key = "authz:eff_perms:e{$actorId}:st{$storeId}";
+
+            return Cache::store('redis')->remember($key, 60, function () use ($actorId, $storeId) {
+                $employee = Employee::find($actorId);
+                if (!$employee) {
+                    return [];
+                }
+
+                // Map stores.id → the store code (stores.store_id) that hiring uses.
+                $storeCode = Store::whereKey($storeId)->value('store_id');
+                if ($storeCode === null) {
+                    return [];
+                }
+
+                $isActiveMember = $employee->stores()
+                    ->where('active', true)
+                    ->where('store_number', (string) $storeCode)
+                    ->exists();
+
+                if (!$isActiveMember) {
+                    return [];
+                }
+
+                return $employee->getAllPermissions()->pluck('name')->values()->all();
+            });
+        }
+
+        // Users: unchanged — store role hierarchy via the trait.
+        $actorClass = get_class($actor);
+        $key = "authz:eff_perms:u{$actorId}:st{$storeId}";
 
         return Cache::store('redis')->remember($key, 60, function () use ($actorClass, $actorId, $storeId) {
             $actor = $actorClass::findOrFail($actorId);
 
-            // getEffectivePermissionsForStore() walks the store role hierarchy
-            // and returns only permissions tied to that store's role assignments.
             return $actor->getEffectivePermissionsForStore($storeId)
                 ->pluck('name')
                 ->values()
@@ -555,7 +582,10 @@ class AuthorizationResolver
     }
 
     /**
-     * Check whether the actor has active assignments for every active store.
+     * Check whether the actor covers every active store.
+     *  - Users: active rows in user_role_store (store_id is the stores.id FK).
+     *  - Employees: active memberships in employee_stores (store_number strings,
+     *    mapped to stores.id via the store code).
      */
     private function userHasAllActiveStoresCached(Model $actor): bool
     {
@@ -566,11 +596,7 @@ class AuthorizationResolver
             ? "authz:allstores:e{$actorId}"
             : "authz:allstores:u{$actorId}";
 
-        [$pivotTable, $pivotFk] = $isEmployee
-            ? ['employee_role_store', 'employee_id']
-            : ['user_role_store', 'user_id'];
-
-        return (bool) Cache::store('redis')->remember($key, 60, function () use ($actorId, $pivotTable, $pivotFk) {
+        return (bool) Cache::store('redis')->remember($key, 60, function () use ($isEmployee, $actorId) {
             $activeStoreIds = Store::where('is_active', true)
                 ->pluck('id')
                 ->map(fn($v) => (int) $v)
@@ -580,13 +606,27 @@ class AuthorizationResolver
                 return true;
             }
 
-            $actorStoreIds = DB::table($pivotTable)
-                ->where($pivotFk, $actorId)
-                ->where('is_active', true)
-                ->distinct()
-                ->pluck('store_id')
-                ->map(fn($v) => (int) $v)
-                ->all();
+            if ($isEmployee) {
+                $memberStoreCodes = DB::table('employee_stores')
+                    ->where('employee_id', $actorId)
+                    ->where('active', true)
+                    ->distinct()
+                    ->pluck('store_number')
+                    ->all();
+
+                $actorStoreIds = Store::whereIn('store_id', $memberStoreCodes)
+                    ->pluck('id')
+                    ->map(fn($v) => (int) $v)
+                    ->all();
+            } else {
+                $actorStoreIds = DB::table('user_role_store')
+                    ->where('user_id', $actorId)
+                    ->where('is_active', true)
+                    ->distinct()
+                    ->pluck('store_id')
+                    ->map(fn($v) => (int) $v)
+                    ->all();
+            }
 
             // Every active store must appear in the actor's assignments
             $remaining = array_diff($activeStoreIds, $actorStoreIds);

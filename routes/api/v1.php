@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\EmployeeAuthController;
 use App\Http\Controllers\Api\V1\Auth\TokenVerifyController;
 use App\Http\Controllers\Api\V1\Employees\EmployeeManagementController;
-use App\Http\Controllers\Api\V1\Employees\EmployeeRoleStoreController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\Users\UserRoleStoreController;
 use App\Http\Controllers\Api\V1\Roles\RoleHierarchyController;
@@ -181,29 +180,15 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Employee Management Routes
+    |
+    | Employees + their store memberships are replicated from the hiring system
+    | and are read-only here. Admins may only reset an employee's auth password.
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage employees')->prefix('employees')->group(function () {
         Route::get('/', [EmployeeManagementController::class, 'index']);
         Route::get('/{employee}', [EmployeeManagementController::class, 'show']);
         Route::post('/{employee}/password', [EmployeeManagementController::class, 'updatePassword']);
-        Route::post('/{employee}/activate', [EmployeeManagementController::class, 'activate']);
-        Route::post('/{employee}/deactivate', [EmployeeManagementController::class, 'deactivate']);
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Employee Role Store Assignment Routes
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('permission:manage employee role assignments')->prefix('employee-role-store')->group(function () {
-        Route::post('/assign', [EmployeeRoleStoreController::class, 'assign']);
-        Route::post('/remove', [EmployeeRoleStoreController::class, 'remove']);
-        Route::post('/toggle', [EmployeeRoleStoreController::class, 'toggle']);
-        Route::post('/bulk-assign', [EmployeeRoleStoreController::class, 'bulkAssign']);
-
-        Route::get('/employee-assignments', [EmployeeRoleStoreController::class, 'getEmployeeAssignments']);
-        Route::get('/store-assignments', [EmployeeRoleStoreController::class, 'getStoreAssignments']);
     });
 
     /*

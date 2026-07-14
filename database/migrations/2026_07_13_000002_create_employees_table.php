@@ -15,11 +15,10 @@ return new class extends Migration {
             $table->string('middle_name', 100)->nullable();
             $table->string('last_name', 100);
 
-            // Store NUMBER string from hiring (e.g. "03795-00001"), not an FK.
-            // Store-scoped role assignments use employee_role_store.store_id → stores.id instead.
-            $table->string('store_id', 50)->index();
-
-            $table->boolean('active')->default(true)->index();
+            // Store memberships live in employee_stores (one row per store),
+            // populated only by hiring events. `active` is derived: true iff the
+            // employee has at least one store membership with an active status.
+            $table->boolean('active')->default(false)->index();
 
             $table->string('password');
 

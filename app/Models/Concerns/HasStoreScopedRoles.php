@@ -6,9 +6,11 @@ use App\Models\Role;
 use App\Models\Store;
 
 /**
- * Store-scoped role helpers shared by User (user_role_store) and
- * Employee (employee_role_store). The pivot FK (user_id / employee_id)
- * is derived automatically from the model's getForeignKey().
+ * Store-scoped role helpers for User (user_role_store pivot). The pivot FK
+ * (user_id) is derived automatically from the model's getForeignKey().
+ *
+ * Note: employees do NOT use this trait — they have no store-scoped roles;
+ * their store dimension is active membership in employee_stores.
  */
 trait HasStoreScopedRoles
 {

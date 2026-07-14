@@ -128,65 +128,17 @@ class EmployeeAuthService
 
     public function getEmployeeCompleteData(Employee $employee): array
     {
-        $employee->load(['roles.permissions', 'permissions']);
+        $employee->load(['roles.permissions', 'permissions', 'stores']);
 
-        $employeeStores = $employee->stores()->wherePivot('is_active', true)->get();
-
-        $storeData = [];
-        foreach ($employeeStores as $store) {
-            $storePk = (int) $store->id;
-
-            $storeRoles = $employee->getRolesForStore($storePk);
-            $effectiveRoles = $employee->getEffectiveRolesForStore($storePk);
-            $effectivePermissions = $employee->getEffectivePermissionsForStore($storePk);
-
-            $storeData[] = [
-                'store' => [
-                    'id' => (int) $store->id,
-                    'store_id' => (string) $store->store_id,
-                    'name' => $store->name,
-                    'metadata' => $store->metadata,
-                    'is_active' => (bool) $store->is_active
-                ],
-                'direct_roles' => $storeRoles->map(function ($role) {
-                    return [
-                        'id' => (int) $role->id,
-                        'name' => (string) $role->name,
-                        'guard_name' => (string) $role->guard_name,
-                        'permissions' => $role->permissions->map(function ($permission) {
-                            return [
-                                'id' => (int) $permission->id,
-                                'name' => (string) $permission->name,
-                                'guard_name' => (string) $permission->guard_name
-                            ];
-                        })
-                    ];
-                })->values(),
-                'effective_roles' => $effectiveRoles->map(function ($role) use ($storeRoles) {
-                    $isDirectRole = $storeRoles->contains('id', $role->id);
-                    return [
-                        'id' => (int) $role->id,
-                        'name' => (string) $role->name,
-                        'guard_name' => (string) $role->guard_name,
-                        'is_inherited' => !$isDirectRole,
-                        'permissions' => $role->permissions->map(function ($permission) {
-                            return [
-                                'id' => (int) $permission->id,
-                                'name' => (string) $permission->name,
-                                'guard_name' => (string) $permission->guard_name
-                            ];
-                        })
-                    ];
-                })->values(),
-                'effective_permissions' => $effectivePermissions->map(function ($permission) {
-                    return [
-                        'id' => (int) $permission->id,
-                        'name' => (string) $permission->name,
-                        'guard_name' => (string) $permission->guard_name
-                    ];
-                })->values(),
+        // Hiring-sourced store memberships (one row per store) — informational.
+        $storeData = $employee->stores->map(function ($membership) {
+            return [
+                'store_number' => (string) $membership->store_number,
+                'status' => $membership->status,
+                'active' => (bool) $membership->active,
+                'effective_date' => optional($membership->effective_date)?->toDateString(),
             ];
-        }
+        })->values();
 
         return [
             'id' => (int) $employee->id,
@@ -194,7 +146,6 @@ class EmployeeAuthService
             'middle_name' => $employee->middle_name,
             'last_name' => (string) $employee->last_name,
             'full_name' => $employee->full_name,
-            'store_id' => (string) $employee->store_id,
             'active' => (bool) $employee->active,
             'created_at' => $employee->created_at,
             'updated_at' => $employee->updated_at,
@@ -222,6 +173,7 @@ class EmployeeAuthService
                 ];
             })->values(),
 
+            // Employees have no store-roles; all permissions are global.
             'all_permissions' => $this->getAllEmployeePermissions($employee),
 
             'stores' => $storeData,
@@ -230,17 +182,7 @@ class EmployeeAuthService
 
     public function getAllEmployeePermissions(Employee $employee): array
     {
-        $allPermissions = collect();
-
-        $allPermissions = $allPermissions->merge($employee->getAllPermissions());
-
-        $employeeStores = $employee->stores()->wherePivot('is_active', true)->get();
-        foreach ($employeeStores as $store) {
-            $storePermissions = $employee->getEffectivePermissionsForStore((int) $store->id);
-            $allPermissions = $allPermissions->merge($storePermissions);
-        }
-
-        return $allPermissions->unique('id')->map(function ($permission) {
+        return $employee->getAllPermissions()->unique('id')->map(function ($permission) {
             return [
                 'id' => (int) $permission->id,
                 'name' => (string) $permission->name,

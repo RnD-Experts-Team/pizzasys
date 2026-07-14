@@ -20,14 +20,14 @@ class EmployeeManagementController extends Controller
         $request->validate([
             'per_page' => 'sometimes|integer|min:1|max:100',
             'search' => 'sometimes|nullable|string|max:100',
-            'store_id' => 'sometimes|nullable|string|max:50',
+            'store_number' => 'sometimes|nullable|string|max:50',
             'active' => 'sometimes|boolean',
         ]);
 
         $employees = $this->employeeManagementService->getAllEmployees(
             (int) $request->input('per_page', 15),
             $request->input('search'),
-            $request->input('store_id'),
+            $request->input('store_number'),
             $request->has('active') ? $request->boolean('active') : null
         );
 
@@ -61,27 +61,5 @@ class EmployeeManagementController extends Controller
                 'error' => $e->getMessage()
             ], 400);
         }
-    }
-
-    public function activate(Request $request, Employee $employee): JsonResponse
-    {
-        $employee = $this->employeeManagementService->activate($employee, $request);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Employee activated successfully',
-            'data' => ['employee' => $employee]
-        ]);
-    }
-
-    public function deactivate(Request $request, Employee $employee): JsonResponse
-    {
-        $employee = $this->employeeManagementService->deactivate($employee, $request);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Employee deactivated successfully',
-            'data' => ['employee' => $employee]
-        ]);
     }
 }

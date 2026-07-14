@@ -45,6 +45,10 @@
             "description": "Assign, remove, toggle, and query user role assignments per store"
         },
         {
+            "name": "Employees",
+            "description": "Employee accounts + store memberships replicated from the hiring system (source of truth). Read-only here; the only admin action is resetting an employee's auth password. Employees, their stores, and their status are never created/updated/deleted via this API."
+        },
+        {
             "name": "Role Hierarchy",
             "description": "Manage hierarchical role relationships per store"
         }
@@ -231,6 +235,7 @@
                 "tags": ["Auth"],
                 "security": [{ "bearerAuth": [] }],
                 "summary": "Refresh token",
+                "description": "User token only. An employee token here returns 403 — employees have no refresh endpoint; their tokens live until logout, password change, deactivation, or admin revocation.",
                 "responses": {
                     "200": {
                         "description": "Token refreshed",
@@ -251,6 +256,7 @@
                 "tags": ["Auth"],
                 "security": [{ "bearerAuth": [] }],
                 "summary": "Logout",
+                "description": "User token only. Employees use POST /auth/employee/logout.",
                 "responses": {
                     "200": {
                         "description": "Logged out",
@@ -271,6 +277,7 @@
                 "tags": ["Auth"],
                 "security": [{ "bearerAuth": [] }],
                 "summary": "Get authenticated user",
+                "description": "User token only. Employees use GET /auth/employee/me.",
                 "responses": {
                     "200": {
                         "description": "Authenticated user",
@@ -359,6 +366,105 @@
                 }
             }
         },
+
+        "/auth/employee/login": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Employee login",
+                "description": "Login with the hiring-system employee id (not email) and password. Inactive employees are rejected. Returns a Sanctum token scoped to the Employee identity — this token cannot be used on user-only endpoints (they return 403) and vice versa.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EmployeeLoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmployeeLoginResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials, or account inactive",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/auth/employee/logout": {
+            "post": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Employee logout",
+                "description": "Employee token only. A user token here returns 403.",
+                "responses": {
+                    "200": {
+                        "description": "Logged out",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden — token does not belong to an employee"
+                    }
+                }
+            }
+        },
+
+        "/auth/employee/me": {
+            "get": {
+                "tags": ["Auth"],
+                "security": [{ "bearerAuth": [] }],
+                "summary": "Get authenticated employee",
+                "description": "Employee token only. A user token here returns 403.",
+                "responses": {
+                    "200": {
+                        "description": "Authenticated employee",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmployeeMeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden — token does not belong to an employee"
+                    }
+                }
+            }
+        },
+
         "/users": {
             "get": {
                 "tags": ["Users"],
@@ -1841,6 +1947,133 @@
                 }
             }
         },
+        "/employees": {
+            "get": {
+                "tags": ["Employees"],
+                "summary": "List employees",
+                "description": "Requires permission: manage employees. Employees are read-only here — they are created/updated exclusively by hiring-system events.",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": { "type": "integer", "default": 15 }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Matches first/middle/last name, or exact numeric employee id",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "description": "Store number string (e.g. \"03795-00001\"), not the numeric store PK",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "active",
+                        "in": "query",
+                        "schema": { "type": "boolean" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated employees list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmployeeIndexResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "/employees/{employee}": {
+            "get": {
+                "tags": ["Employees"],
+                "summary": "Get employee details",
+                "description": "Requires permission: manage employees.",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "employee",
+                        "in": "path",
+                        "required": true,
+                        "description": "Employee id (hiring-system id)",
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Employee details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EmployeeSingleResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Employee not found"
+                    }
+                }
+            }
+        },
+
+        "/employees/{employee}/password": {
+            "post": {
+                "tags": ["Employees"],
+                "summary": "Set employee password",
+                "description": "Requires permission: manage employees. This is the only way to reset an employee's password — employees have no email, so the standard forgot-password/OTP flow does not apply to them. Revokes all of the employee's existing tokens (forced re-login).",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "employee",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "integer" }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateEmployeePasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BasicSuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
         "/role-hierarchy": {
             "post": {
                 "tags": ["Role Hierarchy"],
@@ -2863,6 +3096,10 @@
                     },
                     "store_allows_empty": {
                         "type": "boolean"
+                    },
+                    "employee_accessible": {
+                        "type": "boolean",
+                        "description": "If true, employee tokens may match this rule (subject to the same roles/permissions/store checks as users). Employees are fail-closed: if false (default) or the rule doesn't match at all, employee tokens are denied even when allow_if_no_rule is true for users."
                     }
                 }
             },
@@ -2943,6 +3180,11 @@
                     "store_allows_empty": {
                         "type": "boolean",
                         "description": "Whether empty store IDs are allowed."
+                    },
+                    "employee_accessible": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, employee tokens may match this rule."
                     }
                 }
             },
@@ -2999,6 +3241,9 @@
                         "type": "string"
                     },
                     "store_allows_empty": {
+                        "type": "boolean"
+                    },
+                    "employee_accessible": {
                         "type": "boolean"
                     }
                 }
@@ -3361,6 +3606,259 @@
                     "roles",
                     "all_permissions_from_store_roles"
                 ]
+            },
+
+            "EmployeeLoginRequest": {
+                "type": "object",
+                "required": ["employee_id", "password"],
+                "properties": {
+                    "employee_id": {
+                        "type": "integer",
+                        "description": "Hiring-system employee id. Employees have no email and cannot log in with one."
+                    },
+                    "password": { "type": "string" },
+                    "client_type": {
+                        "type": "string",
+                        "enum": ["web", "mobile"]
+                    },
+                    "device": {
+                        "type": "object",
+                        "properties": {
+                            "device_id": { "type": "string" },
+                            "platform": {
+                                "type": "string",
+                                "enum": ["ios", "android", "web"]
+                            },
+                            "model": { "type": "string" },
+                            "os_version": { "type": "string" },
+                            "app_version": { "type": "string" }
+                        }
+                    },
+                    "fcm_token": { "type": "string" }
+                }
+            },
+
+            "EmployeeLoginResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": { "type": "string" },
+                            "token_type": { "type": "string" },
+                            "employee": { "$ref": "#/components/schemas/FullEmployee" }
+                        }
+                    }
+                }
+            },
+
+            "EmployeeMeResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "employee": { "$ref": "#/components/schemas/FullEmployee" }
+                        }
+                    }
+                }
+            },
+
+            "FullEmployee": {
+                "type": "object",
+                "description": "Returned by employee login and GET /auth/employee/me.",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "first_name": { "type": "string" },
+                    "middle_name": { "type": ["string", "null"] },
+                    "last_name": { "type": "string" },
+                    "full_name": { "type": "string" },
+                    "active": {
+                        "type": "boolean",
+                        "description": "True iff the employee is an active member of at least one store (hiring-derived)."
+                    },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+
+                    "global_roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleWithPermissions"
+                        }
+                    },
+
+                    "global_permissions": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+
+                    "all_permissions": {
+                        "type": "array",
+                        "description": "All permissions from the employee's global roles. Employees have no store-scoped roles.",
+                        "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+
+                    "stores": {
+                        "type": "array",
+                        "description": "Hiring-sourced store memberships (one per store).",
+                        "items": {
+                            "$ref": "#/components/schemas/EmployeeStoreMembership"
+                        }
+                    }
+                }
+            },
+
+            "EmployeeStoreMembership": {
+                "type": "object",
+                "description": "One store the employee belongs to, replicated from the hiring system. Never admin-managed.",
+                "properties": {
+                    "store_number": {
+                        "type": "string",
+                        "description": "Store number string from hiring (e.g. \"03795-00001\")."
+                    },
+                    "status": {
+                        "type": ["string", "null"],
+                        "description": "Raw hiring status for this store: hired / rehired / OJE / resigned / terminated."
+                    },
+                    "active": {
+                        "type": "boolean",
+                        "description": "True iff status is an active one (hired / rehired / OJE)."
+                    },
+                    "effective_date": { "type": ["string", "null"], "format": "date" }
+                }
+            },
+
+            "EmployeeIndexResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "employees": {
+                                "type": "object",
+                                "description": "Standard Laravel paginator object.",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/EmployeeListItem"
+                                        }
+                                    },
+                                    "current_page": { "type": "integer" },
+                                    "last_page": { "type": "integer" },
+                                    "per_page": { "type": "integer" },
+                                    "total": { "type": "integer" }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            "EmployeeListItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "first_name": { "type": "string" },
+                    "middle_name": { "type": ["string", "null"] },
+                    "last_name": { "type": "string" },
+                    "active": { "type": "boolean" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" },
+                    "roles": {
+                        "type": "array",
+                        "description": "Global Spatie roles.",
+                        "items": { "$ref": "#/components/schemas/RoleSimple" }
+                    },
+                    "stores": {
+                        "type": "array",
+                        "description": "Hiring-sourced store memberships.",
+                        "items": {
+                            "$ref": "#/components/schemas/EmployeeStoreMembership"
+                        }
+                    }
+                }
+            },
+
+            "EmployeeSingleResponse": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "employee": {
+                                "$ref": "#/components/schemas/EmployeeDetail"
+                            }
+                        }
+                    }
+                }
+            },
+
+            "EmployeeDetail": {
+                "allOf": [
+                    { "$ref": "#/components/schemas/EmployeeListItem" },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "roles": {
+                                "type": "array",
+                                "description": "Global Spatie roles, with permissions eager-loaded (overrides the simpler list on EmployeeListItem).",
+                                "items": {
+                                    "$ref": "#/components/schemas/RoleWithPermissions"
+                                }
+                            },
+                            "permissions": {
+                                "type": "array",
+                                "description": "Permissions assigned directly to the employee (not via a role).",
+                                "items": { "$ref": "#/components/schemas/Permission" }
+                            },
+                            "stores": {
+                                "type": "array",
+                                "description": "Hiring-sourced store memberships.",
+                                "items": {
+                                    "$ref": "#/components/schemas/EmployeeStoreMembership"
+                                }
+                            },
+                            "devices": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/EmployeeDeviceItem"
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+
+            "EmployeeDeviceItem": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "employee_id": { "type": "integer" },
+                    "device_id": { "type": ["string", "null"] },
+                    "platform": { "type": ["string", "null"], "enum": ["ios", "android", "web", null] },
+                    "model": { "type": ["string", "null"] },
+                    "os_version": { "type": ["string", "null"] },
+                    "app_version": { "type": ["string", "null"] },
+                    "fcm_token": { "type": ["string", "null"] },
+                    "last_seen_at": { "type": ["string", "null"], "format": "date-time" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "updated_at": { "type": "string", "format": "date-time" }
+                }
+            },
+
+            "UpdateEmployeePasswordRequest": {
+                "type": "object",
+                "required": ["password", "password_confirmation"],
+                "properties": {
+                    "password": { "type": "string", "minLength": 8 },
+                    "password_confirmation": { "type": "string" }
+                }
             }
         }
     }

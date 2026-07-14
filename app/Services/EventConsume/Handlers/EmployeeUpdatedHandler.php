@@ -3,11 +3,20 @@
 namespace App\Services\EventConsume\Handlers;
 
 use App\Models\Employee;
+use App\Models\EmployeeStore;
 use App\Services\EventConsume\EventHandlerInterface;
+use App\Services\EventConsume\Handlers\Concerns\ReplicatesEmployeeStores;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * The hiring `updated` event carries only a delta (data.changed_fields), not a
+ * full snapshot. We recompute store memberships when stores and/or status
+ * histories are in the delta; otherwise memberships are left untouched.
+ */
 class EmployeeUpdatedHandler implements EventHandlerInterface
 {
+    use ReplicatesEmployeeStores;
+
     public function handle(array $event): void
     {
         $employeePayload = $this->extractEmployeePayload($event);
@@ -30,9 +39,8 @@ class EmployeeUpdatedHandler implements EventHandlerInterface
                 $update['first_name'] = $firstName;
             }
 
-            $middleName = $this->middleNameChangedOrPayload($event, $employeePayload);
-            if ($middleName !== null || array_key_exists('middle_name', $this->changedFields($event))) {
-                $update['middle_name'] = $middleName;
+            if ($this->hasChangedField($event, 'middle_name')) {
+                $update['middle_name'] = $this->firstChangedOrPayload($event, $employeePayload, 'middle_name');
             }
 
             $lastName = $this->firstChangedOrPayload($event, $employeePayload, 'last_name');
@@ -40,59 +48,74 @@ class EmployeeUpdatedHandler implements EventHandlerInterface
                 $update['last_name'] = $lastName;
             }
 
-            $storeNumber = $this->resolveLatestStoreNumber($event, $employeePayload);
-            if ($storeNumber !== null) {
-                if (!str_starts_with($storeNumber, '03795')) {
-                    throw new \Exception('EmployeeUpdatedHandler: invalid store_number (must start with 03795)');
-                }
-                $update['store_id'] = $storeNumber;
-            }
+            // Recompute memberships when stores and/or status are in the delta.
+            $stores = $this->resolveStores($event, $employeePayload);
+            $statusHistories = $this->resolveStatusHistories($event, $employeePayload);
+            $memberships = $this->resolveMembershipsForUpdate($id, $stores, $statusHistories);
 
-            $update['active'] = $this->resolveActiveFromLatestStatus($event, $employeePayload);
+            if ($memberships !== null) {
+                $this->replaceMemberships($id, $memberships);
+                $update['active'] = $this->anyActive($memberships);
+            }
 
             $wasActive = (bool) $employee->active;
 
             // Never touch password here — hiring events don't carry credentials.
-            DB::table('employees')
-                ->where('id', $id)
-                ->update($update);
+            if (!empty($update)) {
+                DB::table('employees')->where('id', $id)->update($update);
+            }
 
-            if ($wasActive && !$update['active']) {
+            $isActive = array_key_exists('active', $update) ? (bool) $update['active'] : $wasActive;
+
+            if ($wasActive && !$isActive) {
                 // Deactivated → revoke every issued token so live sessions end.
                 $employee->tokens()->delete();
             }
         });
     }
 
-    private function extractEmployeePayload(array $event): array
+    /**
+     * Determine the new membership set for an update, or null to leave memberships as-is.
+     *
+     * @param  array<int, array>|null  $stores
+     * @param  array<int, array>|null  $statusHistories
+     * @return array<int, array>|null
+     */
+    private function resolveMembershipsForUpdate(int $id, ?array $stores, ?array $statusHistories): ?array
     {
-        $employee = data_get($event, 'data.employee');
-        if (is_array($employee)) {
-            return $employee;
+        // Stores changed → full rebuild (status fallback keeps prior per-store status).
+        if ($stores !== null) {
+            return $this->buildMembershipRows($stores, $statusHistories ?? [], $this->existingStatusByStore($id));
         }
 
-        $employee = data_get($event, 'employee');
-        if (is_array($employee)) {
-            return $employee;
+        // Only status changed → keep existing store list, recompute status per store.
+        if ($statusHistories !== null) {
+            $existing = EmployeeStore::query()->where('employee_id', $id)->get();
+            $syntheticStores = $existing->map(fn ($row) => [
+                'store' => ['store_number' => $row->store_number],
+                'effective_date' => optional($row->effective_date)?->toDateString(),
+            ])->all();
+
+            return $this->buildMembershipRows(
+                $syntheticStores,
+                $statusHistories,
+                $existing->pluck('status', 'store_number')->all()
+            );
         }
 
-        return [];
-    }
-
-    private function resolveEmployeeId(array $event, array $employeePayload): int
-    {
-        $id = $this->asInt(data_get($event, 'data.employee_id') ?? data_get($event, 'employee_id'));
-        if ($id > 0) {
-            return $id;
-        }
-
-        return $this->asInt(data_get($employeePayload, 'id'));
+        // Neither stores nor status in the delta → leave memberships untouched.
+        return null;
     }
 
     private function changedFields(array $event): array
     {
         $changed = data_get($event, 'data.changed_fields');
         return is_array($changed) ? $changed : [];
+    }
+
+    private function hasChangedField(array $event, string $field): bool
+    {
+        return array_key_exists($field, $this->changedFields($event));
     }
 
     private function firstChangedOrPayload(array $event, array $employeePayload, string $field): ?string
@@ -106,22 +129,6 @@ class EmployeeUpdatedHandler implements EventHandlerInterface
         return $this->stringOrNull(data_get($employeePayload, $field));
     }
 
-    private function middleNameChangedOrPayload(array $event, array $employeePayload): ?string
-    {
-        $changed = $this->changedFields($event);
-
-        if (array_key_exists('middle_name', $changed)) {
-            $v = $changed['middle_name'];
-            if (is_array($v) && array_key_exists('to', $v) && $v['to'] === null) {
-                return null;
-            }
-
-            return $this->extractDeltaToString($v);
-        }
-
-        return $this->stringOrNull(data_get($employeePayload, 'middle_name'));
-    }
-
     private function extractDeltaToString(mixed $value): ?string
     {
         if (is_array($value) && array_key_exists('to', $value)) {
@@ -129,123 +136,5 @@ class EmployeeUpdatedHandler implements EventHandlerInterface
         }
 
         return $this->stringOrNull($value);
-    }
-
-    private function resolveLatestStoreNumber(array $event, array $employeePayload): ?string
-    {
-        $stores = data_get($employeePayload, 'stores');
-        if (!is_array($stores)) {
-            $stores = data_get($event, 'data.changed_fields.stores.to');
-        }
-        if (!is_array($stores)) {
-            $stores = [];
-        }
-
-        $latest = $this->latestEntry($stores);
-        $storeNumber = $this->stringOrNull(data_get($latest, 'store.store_number'));
-        if ($storeNumber !== null && str_starts_with($storeNumber, '03795')) {
-            return $storeNumber;
-        }
-
-        $fallback = $this->stringOrNull(data_get($event, 'data.store_number') ?? data_get($event, 'store_number'));
-        if ($fallback !== null && str_starts_with($fallback, '03795')) {
-            return $fallback;
-        }
-
-        return null;
-    }
-
-    private function resolveActiveFromLatestStatus(array $event, array $employeePayload): bool
-    {
-        $statuses = data_get($employeePayload, 'status_histories');
-        if (!is_array($statuses)) {
-            $statuses = data_get($event, 'data.changed_fields.status_histories.to');
-        }
-        if (!is_array($statuses)) {
-            $statuses = [];
-        }
-
-        $latest = $this->latestEntry($statuses);
-        $status = strtolower((string) data_get($latest, 'status', ''));
-
-        return in_array($status, ['hired', 'rehired', 'oje'], true);
-    }
-
-    private function latestEntry(array $items): ?array
-    {
-        $latest = null;
-        $latestTs = null;
-
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $ts = $this->timestampFromEntry($item);
-
-            if ($latest === null || ($ts !== null && ($latestTs === null || $ts > $latestTs))) {
-                $latest = $item;
-                $latestTs = $ts;
-            }
-        }
-
-        return $latest;
-    }
-
-    private function timestampFromEntry(array $entry): ?int
-    {
-        $candidates = [
-            data_get($entry, 'effective_date'),
-            data_get($entry, 'created_at'),
-            data_get($entry, 'updated_at'),
-        ];
-
-        foreach ($candidates as $value) {
-            if (!is_string($value) || trim($value) === '') {
-                continue;
-            }
-
-            $ts = strtotime($value);
-            if ($ts !== false) {
-                return $ts;
-            }
-        }
-
-        return null;
-    }
-
-    private function stringOrNull(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        if (is_string($value)) {
-            $value = trim($value);
-            return $value === '' ? null : $value;
-        }
-
-        if (is_int($value) || is_float($value) || is_bool($value)) {
-            return (string) $value;
-        }
-
-        return null;
-    }
-
-    private function asInt(mixed $v): int
-    {
-        if (is_int($v)) {
-            return $v;
-        }
-
-        if (is_string($v) && ctype_digit($v)) {
-            return (int) $v;
-        }
-
-        if (is_numeric($v)) {
-            return (int) $v;
-        }
-
-        return 0;
     }
 }
