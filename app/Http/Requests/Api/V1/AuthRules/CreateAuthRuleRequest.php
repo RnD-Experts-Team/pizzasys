@@ -30,6 +30,7 @@ class CreateAuthRuleRequest extends FormRequest
             'store_id_sources' => 'nullable|array',
             'store_match_policy' => 'required_if:store_scope_mode,scoped|nullable|string|in:all,any',
             'store_allows_empty' => 'sometimes|boolean',
+            'employee_accessible' => 'sometimes|boolean',
         ];
     }
 

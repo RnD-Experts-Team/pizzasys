@@ -2,7 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Auth\EmployeeAuthController;
 use App\Http\Controllers\Api\V1\Auth\TokenVerifyController;
+use App\Http\Controllers\Api\V1\Employees\EmployeeManagementController;
+use App\Http\Controllers\Api\V1\Employees\EmployeeRoleStoreController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
 use App\Http\Controllers\Api\V1\Users\UserRoleStoreController;
 use App\Http\Controllers\Api\V1\Roles\RoleHierarchyController;
@@ -20,6 +23,7 @@ use App\Http\Controllers\Api\V1\AuthRules\AuthRuleController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/employee/login', [EmployeeAuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/token-verify', [TokenVerifyController::class, 'handle']);
@@ -28,10 +32,20 @@ Route::prefix('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes (Authentication Required)
+| Protected Employee Routes (Employee tokens only)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'tokenable.employee'])->prefix('auth/employee')->group(function () {
+    Route::post('/logout', [EmployeeAuthController::class, 'logout']);
+    Route::get('/me', [EmployeeAuthController::class, 'me']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (Authentication Required — user tokens only)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -162,6 +176,34 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/user-assignments', [UserRoleStoreController::class, 'getUserAssignments']);
         Route::get('/store-assignments', [UserRoleStoreController::class, 'getStoreAssignments']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Management Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:manage employees')->prefix('employees')->group(function () {
+        Route::get('/', [EmployeeManagementController::class, 'index']);
+        Route::get('/{employee}', [EmployeeManagementController::class, 'show']);
+        Route::post('/{employee}/password', [EmployeeManagementController::class, 'updatePassword']);
+        Route::post('/{employee}/activate', [EmployeeManagementController::class, 'activate']);
+        Route::post('/{employee}/deactivate', [EmployeeManagementController::class, 'deactivate']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Role Store Assignment Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:manage employee role assignments')->prefix('employee-role-store')->group(function () {
+        Route::post('/assign', [EmployeeRoleStoreController::class, 'assign']);
+        Route::post('/remove', [EmployeeRoleStoreController::class, 'remove']);
+        Route::post('/toggle', [EmployeeRoleStoreController::class, 'toggle']);
+        Route::post('/bulk-assign', [EmployeeRoleStoreController::class, 'bulkAssign']);
+
+        Route::get('/employee-assignments', [EmployeeRoleStoreController::class, 'getEmployeeAssignments']);
+        Route::get('/store-assignments', [EmployeeRoleStoreController::class, 'getStoreAssignments']);
     });
 
     /*

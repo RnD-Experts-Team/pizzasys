@@ -30,6 +30,7 @@ class UpdateAuthRuleRequest extends FormRequest
             'store_id_sources' => 'sometimes|nullable|array',
             'store_match_policy' => 'sometimes|string|in:all,any',
             'store_allows_empty' => 'sometimes|boolean',
+            'employee_accessible' => 'sometimes|boolean',
         ];
     }
 

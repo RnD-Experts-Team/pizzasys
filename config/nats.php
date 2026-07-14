@@ -10,6 +10,10 @@ $notificationsSubject = $devMode
     ? 'notifications.testing.v1.>'
     : 'notifications.v1.>';
 
+$hiringSubject = $devMode
+    ? 'hiring.testing.v1.>'
+    : 'hiring.v1.>';
+
 return [
 
     'dev_mode' => $devMode,
@@ -44,10 +48,18 @@ return [
 
     /**
      * Streams consumed by THIS service.
-     * In auth service this may be empty if auth only publishes.
+     * Auth consumes hiring employee events to replicate employees.
      */
     'streams' => [
-        // Usually auth service does not consume in this setup.
+        [
+            'name' => $devMode
+                ? env('NATS_HIRING_STREAM', 'HIRING_TESTING_EVENTS')
+                : env('NATS_HIRING_STREAM', 'HIRING_EVENTS'),
+            'durable' => $devMode
+                ? env('NATS_HIRING_DURABLE', 'AUTH_HIRING_TESTING_CONSUMER')
+                : env('NATS_HIRING_DURABLE', 'AUTH_HIRING_CONSUMER'),
+            'filter_subject' => $hiringSubject,
+        ],
     ],
 
     'pull' => [
