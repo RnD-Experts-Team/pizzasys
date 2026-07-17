@@ -56,6 +56,7 @@ class AuthRuleManagementService
                 'store_id_sources' => $data['store_id_sources'] ?? null,
                 'store_match_policy' => $data['store_match_policy'] ?? null,
                 'store_allows_empty' => $data['store_allows_empty'] ?? false,
+                'employee_accessible' => (bool) ($data['employee_accessible'] ?? false),
             ]);
         }
 
@@ -67,7 +68,7 @@ class AuthRuleManagementService
     {
         $updateData = [];
 
-        foreach (['service', 'method', 'route_name', 'path_dsl', 'priority', 'is_active', 'store_scope_mode', 'store_id_sources', 'store_match_policy', 'store_allows_empty'] as $field) {
+        foreach (['service', 'method', 'route_name', 'path_dsl', 'priority', 'is_active', 'store_scope_mode', 'store_id_sources', 'store_match_policy', 'store_allows_empty', 'employee_accessible'] as $field) {
             if (isset($data[$field])) {
                 $updateData[$field] = $data[$field];
             }

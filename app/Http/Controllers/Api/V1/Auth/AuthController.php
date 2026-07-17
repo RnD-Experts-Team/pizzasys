@@ -65,6 +65,24 @@ class AuthController extends Controller
         }
     }
 
+    public function impersonate(Request $request, User $user): JsonResponse
+    {
+        try {
+            $result = $this->authService->impersonate($user, $request->user(), $request);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Impersonation successful',
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
     public function verifyEmail(VerifyOtpRequest $request): JsonResponse
     {
         $verified = $this->authService->verifyOtp(

@@ -19,6 +19,7 @@ class AuthRule extends Model
         'store_id_sources',
         'store_match_policy',
         'store_allows_empty',
+        'employee_accessible',
         'is_active',
         'priority',
     ];
@@ -29,6 +30,7 @@ class AuthRule extends Model
         'permissions_all' => 'array',
         'store_id_sources' => 'array',
         'store_allows_empty' => 'boolean',
+        'employee_accessible' => 'boolean',
         'is_active' => 'boolean',
         'priority' => 'integer',
     ];

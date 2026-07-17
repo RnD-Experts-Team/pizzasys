@@ -59,6 +59,25 @@ class AuthService
         ];
     }
 
+    public function impersonate(User $target, User $actor, ?Request $request = null): array
+    {
+        $tokenResult = $target->createToken('impersonation-token');
+        $token = $tokenResult->plainTextToken;
+
+        $this->recordEvent('auth.v1.user.impersonated', [
+            'actor_id' => (int) $actor->id,
+            'target_user_id' => (int) $target->id,
+        ], $request);
+
+        $userData = $this->getUserCompleteData($target);
+
+        return [
+            'user' => $userData,
+            'token' => $token,
+            'token_type' => 'Bearer',
+        ];
+    }
+
     private function emitUserDeviceUpsertedEvent(int $userId, array $device, ?Request $request = null): void
     {
         $this->recordEvent('auth.v1.user.device.upserted', [
