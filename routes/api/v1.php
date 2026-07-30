@@ -139,7 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage stores')->prefix('stores')->group(function () {
-        Route::get('/', [StoreController::class, 'index']);
+        Route::get('/', [StoreController::class, 'index'])->withoutMiddleware('permission:manage stores');
         Route::post('/', [StoreController::class, 'store']);
         Route::get('/{store}', [StoreController::class, 'show']);
         Route::put('/{store}', [StoreController::class, 'update']);
