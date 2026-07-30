@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Services\V1\Auth\AuthorizationResolver;
 use App\Services\V1\Auth\ServiceCallerAuthenticator;
 use Illuminate\Http\Request;
@@ -62,6 +63,13 @@ class TokenVerifyController extends Controller
         if (!$user)
             return response()->json(['active' => false]);
 
+        $subjectType = $user instanceof Employee ? 'employee' : 'user';
+
+        // Inactive employees are treated like a revoked credential.
+        if ($subjectType === 'employee' && !$user->active) {
+            return response()->json(['active' => false]);
+        }
+
         // 4) Roles/permissions/abilities
         $roles = method_exists($user, 'getRoleNames') ? $user->getRoleNames()->values()->all() : [];
         $perms = method_exists($user, 'getAllPermissions') ? $user->getAllPermissions()->pluck('name')->values()->all() : [];
@@ -73,7 +81,7 @@ class TokenVerifyController extends Controller
 
         // 5) Authorization via DB rules + store context
         [$authorized, $requiredPermissions, $grantedBy, $meta] =
-            $authz->check($service, $method, $path, $routeName, $roles, $perms, $abilities, $storeContext, (int) $user->getKey());
+            $authz->check($service, $method, $path, $routeName, $roles, $perms, $abilities, $storeContext, $user);
 
         return response()->json([
             'active' => true,
@@ -85,10 +93,11 @@ class TokenVerifyController extends Controller
             'aud' => $service,
             'iss' => config('app.url'),
             'jti' => (string) $accessToken->id,
+            'subject_type' => $subjectType,
             'user' => [
                 'id' => $user->getKey(),
-                'name' => $user->name,
-                'email' => $user->email,
+                'name' => $subjectType === 'employee' ? $user->full_name : $user->name,
+                'email' => $user->email ?? null,
             ],
             'roles' => $roles,
             'permissions' => $perms,
@@ -96,6 +105,7 @@ class TokenVerifyController extends Controller
                 'authorized' => $authorized,
                 'required_permissions' => $requiredPermissions,
                 'granted_by' => $grantedBy,
+                'subject_type' => $subjectType,
                 'store' => $meta, // includes store_ids + store_mode (+ per_store if scoped)
                 'context' => [
                     'service' => $service,

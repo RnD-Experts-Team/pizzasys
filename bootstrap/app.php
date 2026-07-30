@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'correlation.id' => \App\Http\Middleware\CorrelationIdMiddleware::class,
+            'tokenable.user' => \App\Http\Middleware\EnsureTokenableIsUser::class,
+            'tokenable.employee' => \App\Http\Middleware\EnsureTokenableIsEmployee::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

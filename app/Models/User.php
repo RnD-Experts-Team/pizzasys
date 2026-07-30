@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasStoreScopedRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,7 +11,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, HasStoreScopedRoles;
+
+    protected function roleStorePivotTable(): string
+    {
+        return 'user_role_store';
+    }
 
     protected $fillable = [
         'name',
@@ -65,53 +71,6 @@ class User extends Authenticatable
     public function roleTenancies()
     {
         return $this->hasMany(UserRoleStore::class, 'user_id')->with(['role', 'store']);
-    }
-
-    public function storeRoles()
-    {
-        return $this->belongsToMany(Role::class, 'user_role_store')
-            ->withPivot('store_id', 'metadata', 'is_active')
-            ->withTimestamps();
-    }
-
-    public function stores()
-    {
-        return $this->belongsToMany(Store::class, 'user_role_store')
-            ->withPivot('role_id', 'metadata', 'is_active')
-            ->withTimestamps();
-    }
-
-    public function getRolesForStore(int $storeId)
-    {
-        return $this->storeRoles()
-            ->wherePivot('store_id', (int) $storeId)
-            ->wherePivot('is_active', true)
-            ->get();
-    }
-
-    public function getEffectiveRolesForStore(int $storeId)
-    {
-        $directRoles = $this->getRolesForStore($storeId);
-        $allRoles = collect($directRoles->all());
-
-        foreach ($directRoles as $role) {
-            $inheritedRoles = $role->getAllLowerRolesForStore($storeId);
-            $allRoles = $allRoles->merge($inheritedRoles);
-        }
-
-        return $allRoles->unique('id');
-    }
-
-    public function getEffectivePermissionsForStore(int $storeId)
-    {
-        $allRoles = $this->getEffectiveRolesForStore($storeId);
-        $allPermissions = collect();
-
-        foreach ($allRoles as $role) {
-            $allPermissions = $allPermissions->merge($role->permissions);
-        }
-
-        return $allPermissions->unique('id');
     }
 
     public function getWithRolesAndPermissions()
@@ -211,11 +170,6 @@ class User extends Authenticatable
         }
 
         return false;
-    }
-
-    public function hasPermissionInStore(string $permission, string $storeId): bool
-    {
-        return $this->getEffectivePermissionsForStore($storeId)->contains('name', $permission);
     }
 
     public function userStoreSessions()

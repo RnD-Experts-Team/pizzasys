@@ -15,7 +15,8 @@ class AuthzRuleAdd extends Command
                             {--perms-any= : comma list, e.g., orders.view,metrics.view}
                             {--perms-all= : comma list, e.g., orders.update,orders.delete}
                             {--priority=100 : integer priority (higher first)}
-                            {--inactive : create as inactive}';
+                            {--inactive : create as inactive}
+                            {--emp-accessible : allow employee tokens to match this rule}';
 
     protected $description = 'Add an authorization rule using a friendly Path DSL or route name.';
 
@@ -31,6 +32,7 @@ class AuthzRuleAdd extends Command
         $permsAll = $this->csv($this->option('perms-all'));
         $priority = (int) $this->option('priority');
         $inactive = (bool) $this->option('inactive');
+        $empAccessible = (bool) $this->option('emp-accessible');
 
         $isRoute = str_starts_with($target, 'route:');
         $routeName = $isRoute ? substr($target, 6) : null;
@@ -58,6 +60,7 @@ class AuthzRuleAdd extends Command
                 'permissions_all'  => !empty($permsAll) ? array_values($permsAll) : null,
                 'priority'         => $priority,
                 'is_active'        => !$inactive,
+                'employee_accessible' => $empAccessible,
             ]);
 
             $this->info("Rule #{$rule->id} added: [{$service}] {$m} " .
@@ -66,7 +69,8 @@ class AuthzRuleAdd extends Command
                 ' | perms_any=' . json_encode($permsAny) .
                 ' | perms_all=' . json_encode($permsAll) .
                 " | priority={$priority}" .
-                ' | active=' . ($rule->is_active ? 'yes' : 'no'));
+                ' | active=' . ($rule->is_active ? 'yes' : 'no') .
+                ' | emp_accessible=' . ($rule->employee_accessible ? 'yes' : 'no'));
         }
 
         $this->line("\nPath DSL tips:");

@@ -36,6 +36,8 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'manage user role assignments',
 
+            'manage employees',
+
             'manage role hierarchy',
 
             'manager entities and categories of qa',
