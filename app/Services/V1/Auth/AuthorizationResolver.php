@@ -184,8 +184,10 @@ class AuthorizationResolver
             // For each store, evaluate using ONLY that store's effective permissions.
             // Global permissions are intentionally NOT used here.
             $perStoreAuth = [];
+            $perStorePermissions = [];
             foreach ($storeIds as $sid) {
                 $storePerms = $this->getEffectivePermissionsForUserStoreCached($actor, (int) $sid);
+                $perStorePermissions[$sid] = $storePerms;
                 $perStoreAuth[$sid] = $this->evaluatePermsBoolean($rule, $storePerms, $tokenAbilities);
             }
 
@@ -195,7 +197,7 @@ class AuthorizationResolver
                         true,
                         [],
                         'store-permissions-any',
-                        ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth],
+                        ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth, 'per_store_permissions' => $perStorePermissions],
                     ];
                 }
 
@@ -203,7 +205,7 @@ class AuthorizationResolver
                     false,
                     $this->requiredPermsFromRule($rule),
                     'deny-store-any',
-                    ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth],
+                    ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth, 'per_store_permissions' => $perStorePermissions],
                 ];
             }
 
@@ -214,7 +216,7 @@ class AuthorizationResolver
                         false,
                         $this->requiredPermsFromRule($rule),
                         'deny-store-all',
-                        ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth],
+                        ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth, 'per_store_permissions' => $perStorePermissions],
                     ];
                 }
             }
@@ -223,7 +225,7 @@ class AuthorizationResolver
                 true,
                 [],
                 'store-permissions-all',
-                ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth],
+                ['store_ids' => $storeIds, 'store_mode' => 'scoped', 'per_store' => $perStoreAuth, 'per_store_permissions' => $perStorePermissions],
             ];
         }
 
