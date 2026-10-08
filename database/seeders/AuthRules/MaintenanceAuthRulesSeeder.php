@@ -26,6 +26,9 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],
             ['GET', '/stores/*/tickets/analytics', 'scoped', ['reports view', 'mos']],
             ['GET', '/stores/*/issues/*/history', 'scoped', ['reports view', 'mos']],
+            // "This fixed it": troubleshooting solved it, no ticket -- logged
+            // by whoever would have raised the ticket.
+            ['POST', '/stores/*/troubleshooting-fixes', 'scoped', ['reports view', 'mos']],
 
             // ── One ticket ───────────────────────────────────────────────────
             ['DELETE', '/stores/*/tickets/*', 'scoped', ['mos']],
@@ -105,13 +108,19 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // Guides are read by store staff before they raise a ticket.
             ['GET', '/troubleshooting-guides', 'none'],
             ['GET', '/issues/*/troubleshooting', 'none'],
-            ['PUT', '/issues/*/troubleshooting', 'none', ['mos']],
-            ['DELETE', '/issues/*/troubleshooting', 'none', ['mos']],
+            ['POST', '/issues/*/troubleshooting-guides', 'none', ['mos']],
+            ['PUT', '/troubleshooting-guides/*', 'none', ['mos']],
+            ['DELETE', '/troubleshooting-guides/*', 'none', ['mos']],
             ['POST', '/troubleshooting-guides/*/attachments', 'none', ['mos']],
             ['DELETE', '/troubleshooting-guides/*/attachments/*', 'none', ['mos']],
+            ['POST', '/troubleshooting-steps/*/attachments', 'none', ['mos']],
+            ['DELETE', '/troubleshooting-steps/*/attachments/*', 'none', ['mos']],
 
             // ── Technicians ──────────────────────────────────────────────────
             ['GET', '/technicians', 'none', ['mos']],
+            ['GET', '/technicians/*', 'none', ['mos']],
+            ['GET', '/technicians/*/analytics', 'none', ['mos']],
+            ['GET', '/technician-analytics', 'none', ['mos']],
             ['POST', '/technicians', 'none', ['mos']],
             ['PATCH', '/technicians/*', 'none', ['mos']],
             ['DELETE', '/technicians/*', 'none', ['mos']],
@@ -180,6 +189,16 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // No route in MaintenancePizza; the dashboard's old /maintenance page still checks these.
             ['GET', '/stores/*/maintenance-requests', 'scoped', ['reports view']],
             ['GET', '/maintenance-requests/*', 'scoped', ['reports view'], 'allows_empty' => true],
+        ];
+    }
+
+    protected function retired(): array
+    {
+        // An issue has several troubleshooting guides since 2026-10-08; guides
+        // are written at /issues/*/troubleshooting-guides and /troubleshooting-guides/*.
+        return [
+            ['PUT', '/issues/*/troubleshooting'],
+            ['DELETE', '/issues/*/troubleshooting'],
         ];
     }
 }
