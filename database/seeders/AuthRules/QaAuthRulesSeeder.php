@@ -84,11 +84,12 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/cleaning/reports/csv', 'none', ['cleaning specialist']],
 
             // ── Dough & sauce (b-dashboard-pizza/docs/DOUGH-SAUCE-ACCESS.md) ─
-            // Store managers: `reports view` for their store. The specialist holds
-            // `dough and sauce` through a GLOBAL role, which a scoped rule never
-            // sees, so the role is let through by name.
-            ['GET', '/stores/*/dough-sauce/plan', 'scoped', ['dough and sauce', 'reports view'], 'roles' => ['Dough and Sauce']],
-            ['POST', '/stores/*/dough-sauce/plan', 'scoped', ['dough and sauce', 'reports view'], 'roles' => ['Dough and Sauce']],
+            // Only `dough and sauce`: workers hold it per store, the head through the
+            // global Dough and Sauce role, which a scoped rule never sees, so the
+            // role is let through by name. `reports view` (Store Manager) does not
+            // open dough & sauce.
+            ['GET', '/stores/*/dough-sauce/plan', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
+            ['POST', '/stores/*/dough-sauce/plan', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
             ['GET', '/stores/*/dough-sauce/week', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
             ['PUT', '/stores/*/dough-sauce/judgement', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
             ['GET', '/dough-sauce/plans', 'none', ['dough and sauce']],

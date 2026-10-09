@@ -41,12 +41,13 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
             ['PATCH', '/inventory/entry-items/*', 'scoped', ['inventory handling'], 'allows_empty' => true],
 
             // ── Dough & sauce counts (b-dashboard-pizza/docs/DOUGH-SAUCE-ACCESS.md)
-            ['GET', '/inventory/stores/*/counts', 'scoped', ['reports view', 'dough and sauce'], 'roles' => ['Dough and Sauce']],
+            // Only `dough and sauce` (workers per store, head by role), as on QA and Data.
+            ['GET', '/inventory/stores/*/counts', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
             // Every active store in one call: the specialist's weekly grid. The doc
             // suggests all_stores, but that mode also demands a store-role row at
             // every store, which a global specialist does not have. A global check
-            // gives the intended result: the specialist passes, store managers get
-            // 403 and use the per-store route above.
+            // gives the intended result: the head passes, workers get 403 and use
+            // the per-store route above for their own stores.
             ['GET', '/inventory/counts', 'none', ['dough and sauce']],
         ];
     }

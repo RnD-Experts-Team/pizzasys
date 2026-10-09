@@ -93,10 +93,11 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
             ['DELETE', '/stores/*/employee-debriefs/*', 'scoped', ['data entry']],
 
             // ── Dough & sauce (b-dashboard-pizza/docs/DOUGH-SAUCE-ACCESS.md) ─
-            // The specialist holds `dough and sauce` through a GLOBAL role, which a
-            // scoped rule never sees, so the role is let through by name.
-            ['GET', '/stores/*/dough-sauce/daily-plan', 'scoped', ['dough and sauce', 'reports view'], 'roles' => ['Dough and Sauce']],
-            ['GET', '/dough-sauce/ingredients', 'scoped', ['dough and sauce', 'reports view'], 'allows_empty' => true],
+            // Only `dough and sauce`: workers hold it per store, the head through the
+            // global Dough and Sauce role, which a scoped rule never sees, so the
+            // role is let through by name.
+            ['GET', '/stores/*/dough-sauce/daily-plan', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
+            ['GET', '/dough-sauce/ingredients', 'scoped', ['dough and sauce'], 'allows_empty' => true],
             ['GET', '/dough-sauce/recipes', 'none', ['dough and sauce']],
             ['POST', '/dough-sauce/recipes', 'none', ['dough and sauce']],
             ['PUT', '/dough-sauce/recipes/*', 'none', ['dough and sauce']],
