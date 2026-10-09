@@ -130,6 +130,33 @@ class AuthRulesSeederTest extends TestCase
         $this->assertFalse($this->allows($worker, 'QA', 'GET', '/stores/03795-00002/dough-sauce/plan', ['store_id' => '03795-00002']));
     }
 
+    public function test_ticket_lists_read_the_store_only_from_stores_and_every_store_is_the_mos_heads(): void
+    {
+        // A store manager who also holds the role globally, as some do on testing.
+        $manager = $this->userWithStoreRole('Store Manager', $this->storeA);
+        $manager->assignRole('Store Manager');
+        // The MOS head: the role at the store AND globally.
+        $head = $this->userWithStoreRole('MOS', $this->storeA);
+        $head->assignRole('MOS');
+
+        $own = ['query' => ['stores' => ['03795-00001']]];
+        $other = ['query' => ['stores' => ['03795-00002']]];
+
+        $this->assertTrue($this->allowsWith($manager, 'GET', '/tickets', $own));
+        $this->assertFalse($this->allowsWith($manager, 'GET', '/tickets', $other));
+        $this->assertFalse($this->allowsWith($manager, 'GET', '/tickets', []), 'a global role is not every store');
+        $this->assertFalse(
+            $this->allowsWith($manager, 'GET', '/tickets', ['header' => ['X-Store-Id' => '03795-00001']]),
+            'a store named outside stores[] does not count: the list filters on stores[] only',
+        );
+        $this->assertFalse($this->allowsWith($manager, 'GET', '/tickets/analytics', []));
+        $this->assertFalse($this->allowsWith($manager, 'GET', '/tickets/5/issues', ['header' => ['X-Store-Id' => '03795-00001']]));
+        $this->assertTrue($this->allowsWith($manager, 'GET', '/tickets/5/issues', ['query' => ['store_id' => '03795-00001']]));
+
+        $this->assertTrue($this->allowsWith($head, 'GET', '/tickets', []));
+        $this->assertTrue($this->allowsWith($head, 'GET', '/tickets/analytics', []));
+    }
+
     public function test_employee_tokens_match_no_rule(): void
     {
         $employee = Employee::create(['id' => 501, 'first_name' => 'Sam', 'last_name' => 'Lee', 'active' => true, 'password' => 'secret']);
@@ -144,6 +171,21 @@ class AuthRulesSeederTest extends TestCase
         $user->storeRoles()->attach(Role::findByName($role)->id, ['store_id' => $store->id, 'is_active' => true]);
 
         return $user;
+    }
+
+    /**
+     * A Maintenance request with the store context as the middleware sends it:
+     * any of path / query / body / header.
+     */
+    private function allowsWith(Model $actor, string $method, string $path, array $context): bool
+    {
+        [$authorized] = app(AuthorizationResolver::class)->check(
+            'Maintenance', $method, $path, null, [], [], [],
+            $context + ['path' => [], 'query' => [], 'body' => [], 'header' => []],
+            $actor
+        );
+
+        return $authorized;
     }
 
     private function allows(Model $actor, string $service, string $method, string $path, array $pathParams = []): bool

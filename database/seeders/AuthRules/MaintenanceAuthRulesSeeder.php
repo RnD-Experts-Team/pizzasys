@@ -17,10 +17,17 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Tickets: lists and analytics ─────────────────────────────────
-            ['GET', '/tickets', 'scoped', ['mos', 'reports view'], 'allows_empty' => true],
+            // Across stores. The store is read ONLY from the parameter the
+            // endpoint filters on (stores[], or store_id for one ticket), so a
+            // store named any other way cannot authorise an unfiltered read.
+            // Naming no store at all -- every store's tickets -- is for the MOS
+            // head (MOS held as a global role) and super admins only; anyone
+            // else, even holding `mos` or `reports view` globally, names their
+            // stores and gets those.
+            ['GET', '/tickets', 'scoped', ['mos', 'reports view'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
             ['POST', '/tickets', 'none', ['reports view', 'mos']],
-            ['GET', '/tickets/analytics', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
-            ['GET', '/tickets/*/issues', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
+            ['GET', '/tickets/analytics', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
+            ['GET', '/tickets/*/issues', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['store_id']], 'roles' => ['MOS']],
             ['GET', '/maintenance-analytics/*', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
             ['GET', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],
             ['POST', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],

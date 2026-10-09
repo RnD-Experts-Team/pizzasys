@@ -23,7 +23,13 @@ use Illuminate\Support\Facades\Cache;
  *    the user holds through a store role FOR the store(s) in the request.
  *
  * Row format:
- *   [METHOD, path_dsl, scope, permissions?, 'allows_empty' => bool?, 'priority' => int?, 'roles' => [...]?]
+ *   [METHOD, path_dsl, scope, permissions?, 'allows_empty' => bool?, 'priority' => int?, 'roles' => [...]?,
+ *    'sources' => ['query' => [...], 'header' => [...], ...]?]
+ *
+ * `sources` limits where a scoped rule reads the store from. Without it every
+ * usual place counts (store_id, stores[], X-Store-Id, ...). Set it when the
+ * endpoint filters on ONE of them: a store named anywhere else would pass the
+ * check while the endpoint, not filtering on it, returned every store.
  *
  * Rule shapes we use:
  *  | Situation                                         | Row                                               |
@@ -83,7 +89,7 @@ abstract class AuthRuleSeeder extends Seeder
                 'permissions_any' => $permissions ?: null,
                 'permissions_all' => null,
                 'store_scope_mode' => $scope,
-                'store_id_sources' => null,
+                'store_id_sources' => $row['sources'] ?? null,
                 'store_match_policy' => 'all',
                 'store_allows_empty' => (bool) ($row['allows_empty'] ?? false),
                 'employee_accessible' => false,
