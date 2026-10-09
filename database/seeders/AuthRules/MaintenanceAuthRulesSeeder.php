@@ -106,8 +106,10 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/issues/*/notes', 'none', ['mos']],
             ['POST', '/issues/*/attachments', 'none', ['mos']],
             // Guides are read by store staff before they raise a ticket.
-            ['GET', '/troubleshooting-guides', 'none'],
-            ['GET', '/issues/*/troubleshooting', 'none'],
+            // Store managers (`reports view`) and MOS workers at their stores; the
+            // dashboard sends the store as X-Store-Id. The MOS head reads without one.
+            ['GET', '/troubleshooting-guides', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
+            ['GET', '/issues/*/troubleshooting', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
             ['POST', '/issues/*/troubleshooting-guides', 'none', ['mos']],
             ['PUT', '/troubleshooting-guides/*', 'none', ['mos']],
             ['DELETE', '/troubleshooting-guides/*', 'none', ['mos']],

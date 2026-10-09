@@ -79,6 +79,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage schedule',
             'view tickets',
             'create workbooks',
+            'screens user',
         ],
         'Hiring Manager' => ['hiring specialist', 'hiring admin'],
         'Hiring Specialist' => ['hiring specialist'],
