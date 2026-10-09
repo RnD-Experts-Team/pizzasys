@@ -111,7 +111,23 @@ class AuthRulesSeederTest extends TestCase
         $this->assertTrue($this->allows($specialist, 'QA', 'GET', '/stores/03795-00002/dough-sauce/week', ['store_id' => '03795-00002']));
         $this->assertTrue($this->allows($specialist, 'Inventory', 'GET', '/inventory/counts'));
         $this->assertFalse($this->allows($manager, 'Inventory', 'GET', '/inventory/counts'));
-        $this->assertTrue($this->allows($manager, 'Inventory', 'GET', '/inventory/stores/03795-00001/counts', ['store_id' => '03795-00001']));
+    }
+
+    public function test_dough_and_sauce_needs_the_dough_and_sauce_permission(): void
+    {
+        $manager = $this->userWithStoreRole('Store Manager', $this->storeA);
+        $worker = $this->userWithStoreRole('Dough and Sauce', $this->storeA);
+        $atA = ['store_id' => '03795-00001'];
+
+        // A Store Manager's `reports view` no longer opens any dough & sauce route.
+        $this->assertFalse($this->allows($manager, 'QA', 'GET', '/stores/03795-00001/dough-sauce/plan', $atA));
+        $this->assertFalse($this->allows($manager, 'Data', 'GET', '/stores/03795-00001/dough-sauce/daily-plan', $atA));
+        $this->assertFalse($this->allows($manager, 'Inventory', 'GET', '/inventory/stores/03795-00001/counts', $atA));
+
+        // A worker holding the role at the store passes there, and only there.
+        $this->assertTrue($this->allows($worker, 'QA', 'GET', '/stores/03795-00001/dough-sauce/plan', $atA));
+        $this->assertTrue($this->allows($worker, 'Inventory', 'GET', '/inventory/stores/03795-00001/counts', $atA));
+        $this->assertFalse($this->allows($worker, 'QA', 'GET', '/stores/03795-00002/dough-sauce/plan', ['store_id' => '03795-00002']));
     }
 
     public function test_employee_tokens_match_no_rule(): void
