@@ -70,13 +70,13 @@ class RolesAndPermissionsSeeder extends Seeder
     private const ROLES = [
         'QA Manager' => ['qa audit', 'qa admin'],
         'QA Auditor' => ['qa audit'],
+        // Scheduling moved out of Store Manager into its own role (testing, 2026-10-12).
         'Store Manager' => [
             'reports view',
             'data entry',
             'inventory handling',
             'cleaning specialist',
-            'view schedule',
-            'manage schedule',
+            'dough and sauce',
             'view tickets',
             'create workbooks',
             'screens user',
@@ -88,7 +88,8 @@ class RolesAndPermissionsSeeder extends Seeder
         'Inventory Handler' => ['inventory handling'],
         'Screens User' => ['screens user'],
         'Cleaning Specialist' => ['cleaning specialist'],
-        'Dough and Sauce' => ['dough and sauce'],
+        'Dough and Sauce' => ['dough and sauce', 'reports view', 'data entry', 'inventory handling'],
+        'Scheduling Handler' => ['view schedule', 'manage schedule'],
     ];
 
     public function run(): void
