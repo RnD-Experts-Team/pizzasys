@@ -97,6 +97,7 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
             // global Dough and Sauce role, which a scoped rule never sees, so the
             // role is let through by name.
             ['GET', '/stores/*/dough-sauce/daily-plan', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
+            ['GET', '/stores/*/dough-sauce/daily-plans', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
             ['GET', '/dough-sauce/ingredients', 'scoped', ['dough and sauce'], 'allows_empty' => true],
             ['GET', '/dough-sauce/recipes', 'none', ['dough and sauce']],
             ['POST', '/dough-sauce/recipes', 'none', ['dough and sauce']],
