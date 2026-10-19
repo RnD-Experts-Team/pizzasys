@@ -196,17 +196,22 @@ class AuthService
 
     public function verifyOtp(string $email, string $otp, string $type): bool
     {
-        $otpRecord = Otp::where('email', $email)
-            ->where('otp', $otp)
-            ->where('type', $type)
-            ->where('used', false)
-            ->first();
+        $otpRecord = $this->matchLiveOtp($email, $otp, $type);
 
-        if (!$otpRecord || $otpRecord->isExpired()) {
+        if (!$otpRecord) {
             return false;
         }
 
-        $otpRecord->markAsUsed();
+        // Consume it only if it is still live: a burst of parallel guesses may
+        // have used up the attempts since it was read.
+        $consumed = Otp::whereKey($otpRecord->id)
+            ->where('used', false)
+            ->where('attempts', '<', Otp::MAX_ATTEMPTS)
+            ->update(['used' => true]);
+
+        if ($consumed !== 1) {
+            return false;
+        }
 
         if ($type === 'verification') {
             User::where('email', $email)->update([
@@ -230,19 +235,39 @@ class AuthService
         return true;
     }
 
+    // Does not consume the code: reset-password does, with the same code.
     public function checkOtp(string $email, string $otp, string $type): bool
     {
+        return $this->matchLiveOtp($email, $otp, $type) !== null;
+    }
+
+    /**
+     * The email's live code of this type, if $otp is it. A wrong guess counts
+     * against the live code, and the fifth one kills it - so the attempts are
+     * capped per code, whichever IP they come from.
+     */
+    private function matchLiveOtp(string $email, string $otp, string $type): ?Otp
+    {
         $otpRecord = Otp::where('email', $email)
-            ->where('otp', $otp)
             ->where('type', $type)
             ->where('used', false)
+            ->latest('id')
             ->first();
 
         if (!$otpRecord || $otpRecord->isExpired()) {
-            return false;
+            return null;
         }
 
-        return true;
+        if (hash_equals((string) $otpRecord->otp, $otp)) {
+            return $otpRecord;
+        }
+
+        Otp::whereKey($otpRecord->id)->increment('attempts');
+        Otp::whereKey($otpRecord->id)
+            ->where('attempts', '>=', Otp::MAX_ATTEMPTS)
+            ->update(['used' => true]);
+
+        return null;
     }
 
     public function refreshToken(User $user): array

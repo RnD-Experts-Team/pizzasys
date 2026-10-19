@@ -17,16 +17,20 @@ use App\Http\Controllers\Api\V1\AuthRules\AuthRuleController;
 /*
 |--------------------------------------------------------------------------
 | Public Routes (No Authentication Required)
+|
+| Rate limits (AppServiceProvider): each route here has its own limiter.
+| token-verify carries no generic `api` throttle - every satellite request
+| lands on it, so it is limited per verified token instead.
 |--------------------------------------------------------------------------
 */
 
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/employee/login', [EmployeeAuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    Route::post('/token-verify', [TokenVerifyController::class, 'handle']);
-    Route::post('/reset-otp-verify', [AuthController::class, 'verifyResetOtp']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+    Route::post('/employee/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:auth-login');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-password-email');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-otp-verify');
+    Route::post('/token-verify', [TokenVerifyController::class, 'handle'])->middleware('throttle:auth-token-verify');
+    Route::post('/reset-otp-verify', [AuthController::class, 'verifyResetOtp'])->middleware('throttle:auth-otp-verify');
 });
 
 /*
@@ -34,7 +38,7 @@ Route::prefix('auth')->group(function () {
 | Protected Employee Routes (Employee tokens only)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'tokenable.employee'])->prefix('auth/employee')->group(function () {
+Route::middleware(['auth:sanctum', 'tokenable.employee', 'throttle:api'])->prefix('auth/employee')->group(function () {
     Route::post('/logout', [EmployeeAuthController::class, 'logout']);
     Route::get('/me', [EmployeeAuthController::class, 'me']);
 });
@@ -42,9 +46,12 @@ Route::middleware(['auth:sanctum', 'tokenable.employee'])->prefix('auth/employee
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (Authentication Required — user tokens only)
+|
+| `throttle:api` covers every route; refresh-token and the ?search= listings
+| (api-heavy) add their own tier on top.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
+Route::middleware(['auth:sanctum', 'tokenable.user', 'throttle:api'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -52,7 +59,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('auth')->group(function () {
-        Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
+        Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->middleware('throttle:auth-refresh');
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me', [AuthController::class, 'updateMe']);
@@ -68,7 +75,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage users')->prefix('users')->group(function () {
-        Route::get('/', [UserManagementController::class, 'index']);
+        Route::get('/', [UserManagementController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [UserManagementController::class, 'store']);
         Route::get('/{user}', [UserManagementController::class, 'show']);
         Route::put('/{user}', [UserManagementController::class, 'update']);
@@ -89,7 +96,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage roles')->prefix('roles')->group(function () {
-        Route::get('/', [RoleManagementController::class, 'index']);
+        Route::get('/', [RoleManagementController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [RoleManagementController::class, 'store']);
         Route::get('/{role}', [RoleManagementController::class, 'show']);
         Route::put('/{role}', [RoleManagementController::class, 'update']);
@@ -106,7 +113,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage permissions')->prefix('permissions')->group(function () {
-        Route::get('/', [PermissionManagementController::class, 'index']);
+        Route::get('/', [PermissionManagementController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [PermissionManagementController::class, 'store']);
         Route::get('/{permission}', [PermissionManagementController::class, 'show']);
         Route::put('/{permission}', [PermissionManagementController::class, 'update']);
@@ -119,7 +126,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage service clients')->prefix('service-clients')->group(function () {
-        Route::get('/', [ServiceClientController::class, 'index']);
+        Route::get('/', [ServiceClientController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [ServiceClientController::class, 'store']);
         Route::get('/{serviceClient}', [ServiceClientController::class, 'show']);
         Route::put('/{serviceClient}', [ServiceClientController::class, 'update']);
@@ -135,7 +142,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage auth rules')->prefix('auth-rules')->group(function () {
-        Route::get('/', [AuthRuleController::class, 'index']);
+        Route::get('/', [AuthRuleController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [AuthRuleController::class, 'store']);
         Route::get('/{authRule}', [AuthRuleController::class, 'show']);
         Route::put('/{authRule}', [AuthRuleController::class, 'update']);
@@ -152,7 +159,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage stores')->prefix('stores')->group(function () {
-        Route::get('/', [StoreController::class, 'index']);
+        Route::get('/', [StoreController::class, 'index'])->middleware('throttle:api-heavy');
         Route::post('/', [StoreController::class, 'store']);
         Route::get('/{store}', [StoreController::class, 'show']);
         Route::put('/{store}', [StoreController::class, 'update']);
@@ -186,7 +193,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('permission:manage employees')->prefix('employees')->group(function () {
-        Route::get('/', [EmployeeManagementController::class, 'index']);
+        Route::get('/', [EmployeeManagementController::class, 'index'])->middleware('throttle:api-heavy');
         Route::get('/{employee}', [EmployeeManagementController::class, 'show']);
         Route::post('/{employee}/password', [EmployeeManagementController::class, 'updatePassword']);
     });

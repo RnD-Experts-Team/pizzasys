@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'correlation.id' => \App\Http\Middleware\CorrelationIdMiddleware::class,
             'tokenable.user' => \App\Http\Middleware\EnsureTokenableIsUser::class,
             'tokenable.employee' => \App\Http\Middleware\EnsureTokenableIsEmployee::class,
+            'throttle' => \App\Http\Middleware\ObservableThrottleRequests::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
