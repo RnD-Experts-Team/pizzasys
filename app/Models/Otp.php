@@ -10,17 +10,22 @@ class Otp extends Model
 {
     use HasFactory;
 
+    /** Wrong guesses a code takes: the fifth miss marks it used. */
+    public const MAX_ATTEMPTS = 5;
+
     protected $fillable = [
         'email',
         'otp',
         'type',
         'expires_at',
-        'used'
+        'used',
+        'attempts',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'used' => 'boolean',
+        'attempts' => 'integer',
     ];
 
     public function isExpired(): bool
