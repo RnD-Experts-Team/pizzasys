@@ -78,7 +78,9 @@ class AuthRulesSeederTest extends TestCase
 
         // Hiring sees an employee's skills but cannot change them.
         $this->assertTrue($this->allows($hiring, 'Operations', 'GET', '/v1/stores/03795-00001/employees/7/skills', $atA));
-        $this->assertTrue($this->allows($hiring, 'Operations', 'GET', '/v1/stores/03795-00001/skills/overview', $atA));
+        $this->assertTrue($this->allowsWith($hiring, 'GET', '/v1/skills/overview', ['query' => ['storeIds' => ['03795-00001']]], 'Operations'));
+        $this->assertFalse($this->allowsWith($hiring, 'GET', '/v1/skills/overview', ['query' => ['storeIds' => ['03795-00001', '03795-00002']]], 'Operations'));
+        $this->assertFalse($this->allowsWith($hiring, 'GET', '/v1/skills/overview', [], 'Operations'), 'no store = every store, the head only');
         $this->assertFalse($this->allows($hiring, 'Operations', 'POST', '/v1/stores/03795-00001/employees/7/skills/3', $atA));
 
         // The list itself is the head's: `manage skills` held globally.
