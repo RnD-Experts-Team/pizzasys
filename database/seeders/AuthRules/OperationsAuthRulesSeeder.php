@@ -10,11 +10,19 @@ namespace Database\Seeders\AuthRules;
  *   view schedule   — read the week, roster, availability, time off, templates
  *   manage schedule — everything that writes, including publishing a week,
  *                     clock punches (payroll, via TCP) and Humanity sync
+ *
+ * Employee skills (one star rating per employee per skill; a minor rated on
+ * Dough or Landing only raises an alert):
+ *   reading — whoever can view the employee in Hiring, plus `manage skills`
+ *   manage skills — rate employees at your stores; held globally (the head),
+ *                   also edit the skills list itself
  */
 class OperationsAuthRulesSeeder extends AuthRuleSeeder
 {
     private const READ = ['view schedule', 'manage schedule'];
     private const WRITE = ['manage schedule'];
+    private const SKILLS_READ = ['reports view', 'hiring admin', 'hiring specialist', 'employee obsession', 'manage skills'];
+    private const SKILLS_WRITE = ['manage skills'];
 
     protected function service(): string
     {
@@ -86,6 +94,17 @@ class OperationsAuthRulesSeeder extends AuthRuleSeeder
             // Only registered when TCP_BREAKS_ENABLED is on.
             ['POST', '/v1/stores/*/employees/*/break-start', 'scoped', self::WRITE],
             ['POST', '/v1/stores/*/employees/*/break-end', 'scoped', self::WRITE],
+
+            // ── Employee skills ──────────────────────────────────────────────
+            // The list is reference data; changing it is the head's (global).
+            ['GET', '/v1/skills', 'none'],
+            ['POST', '/v1/skills', 'none', self::SKILLS_WRITE],
+            ['POST', '/v1/skills/*', 'none', self::SKILLS_WRITE],
+            ['DELETE', '/v1/skills/*', 'none', self::SKILLS_WRITE],
+            ['GET', '/v1/stores/*/skills/overview', 'scoped', self::SKILLS_READ],
+            ['GET', '/v1/stores/*/employees/*/skills', 'scoped', self::SKILLS_READ],
+            ['POST', '/v1/stores/*/employees/*/skills/*', 'scoped', self::SKILLS_WRITE],
+            ['DELETE', '/v1/stores/*/employees/*/skills/*', 'scoped', self::SKILLS_WRITE],
 
             // ── Humanity sync for one employee ───────────────────────────────
             ['GET', '/v1/stores/*/employees/*/sync-status', 'scoped', self::READ],

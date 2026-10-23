@@ -56,9 +56,10 @@ class RolesAndPermissionsSeeder extends Seeder
         'mos',
         'inventory handling',
 
-        // Operations (scheduling)
+        // Operations (scheduling, employee skills)
         'view schedule',
         'manage schedule',
+        'manage skills',
 
         // Toolbox
         'view tickets',
@@ -80,6 +81,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view tickets',
             'create workbooks',
             'screens user',
+            'manage skills',
         ],
         'Hiring Manager' => ['hiring specialist', 'hiring admin'],
         'Hiring Specialist' => ['hiring specialist'],
@@ -89,7 +91,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'Screens User' => ['screens user'],
         'Cleaning Specialist' => ['cleaning specialist'],
         'Dough and Sauce' => ['dough and sauce', 'reports view', 'data entry', 'inventory handling'],
-        'Scheduling Handler' => ['view schedule', 'manage schedule'],
+        'Scheduling Handler' => ['view schedule', 'manage schedule', 'manage skills'],
     ];
 
     public function run(): void
