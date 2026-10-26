@@ -65,6 +65,31 @@ class AuthRulesSeederTest extends TestCase
         $this->assertFalse($this->allows($manager, 'Operations', 'GET', '/v1/stores/03795-00002/schedule/week', ['storeId' => '03795-00002']));
     }
 
+    public function test_skills_are_rated_by_store_managers_and_seen_by_hiring(): void
+    {
+        $manager = $this->userWithStoreRole('Store Manager', $this->storeA);
+        $hiring = $this->userWithStoreRole('Hiring Manager', $this->storeA);
+        $head = $this->userWithStoreRole('Scheduling Handler', $this->storeA);
+        $head->assignRole('Scheduling Handler');
+        $atA = ['storeId' => '03795-00001'];
+
+        $this->assertTrue($this->allows($manager, 'Operations', 'POST', '/v1/stores/03795-00001/employees/7/skills/3', $atA));
+        $this->assertFalse($this->allows($manager, 'Operations', 'POST', '/v1/stores/03795-00002/employees/7/skills/3', ['storeId' => '03795-00002']));
+
+        // Hiring sees an employee's skills but cannot change them.
+        $this->assertTrue($this->allows($hiring, 'Operations', 'GET', '/v1/stores/03795-00001/employees/7/skills', $atA));
+        $this->assertTrue($this->allowsWith($hiring, 'GET', '/v1/skills/overview', ['query' => ['storeIds' => ['03795-00001']]], 'Operations'));
+        $this->assertFalse($this->allowsWith($hiring, 'GET', '/v1/skills/overview', ['query' => ['storeIds' => ['03795-00001', '03795-00002']]], 'Operations'));
+        $this->assertFalse($this->allowsWith($hiring, 'GET', '/v1/skills/overview', [], 'Operations'), 'no store = every store, the head only');
+        $this->assertFalse($this->allows($hiring, 'Operations', 'POST', '/v1/stores/03795-00001/employees/7/skills/3', $atA));
+
+        // The list itself is the head's: `manage skills` held globally.
+        $this->assertTrue($this->allows($manager, 'Operations', 'GET', '/v1/skills'));
+        $this->assertFalse($this->allows($manager, 'Operations', 'POST', '/v1/skills'));
+        $this->assertTrue($this->allows($head, 'Operations', 'POST', '/v1/skills'));
+        $this->assertTrue($this->allows($head, 'Operations', 'DELETE', '/v1/skills/3'));
+    }
+
     public function test_locked_maintenance_notes_are_mos_only(): void
     {
         $mos = $this->userWithStoreRole('MOS', $this->storeA);
@@ -130,6 +155,26 @@ class AuthRulesSeederTest extends TestCase
         $this->assertFalse($this->allows($worker, 'QA', 'GET', '/stores/03795-00002/dough-sauce/plan', ['store_id' => '03795-00002']));
     }
 
+    public function test_all_stores_daily_plans_needs_every_listed_store(): void
+    {
+        $specialist = User::factory()->create();
+        $specialist->assignRole('Dough and Sauce');
+        $worker = $this->userWithStoreRole('Dough and Sauce', $this->storeA);
+        $hiring = $this->userWithStoreRole('Hiring Specialist', $this->storeA);
+
+        $onlyA = ['query' => ['store_ids' => '03795-00001']];
+        $both = ['query' => ['store_ids' => '03795-00001,03795-00002']];
+
+        $this->assertTrue($this->allowsWith($specialist, 'GET', '/dough-sauce/daily-plans', $both, 'Data'));
+        $this->assertTrue($this->allowsWith($worker, 'GET', '/dough-sauce/daily-plans', $onlyA, 'Data'));
+        $this->assertFalse($this->allowsWith($worker, 'GET', '/dough-sauce/daily-plans', $both, 'Data'));
+        $this->assertFalse($this->allowsWith($hiring, 'GET', '/dough-sauce/daily-plans', $onlyA, 'Data'));
+        $this->assertFalse(
+            $this->allowsWith($worker, 'GET', '/dough-sauce/daily-plans', ['header' => ['X-Store-Id' => '03795-00001']], 'Data'),
+            'the endpoint filters on store_ids only, so a store named elsewhere does not count',
+        );
+    }
+
     public function test_ticket_lists_read_the_store_only_from_stores_and_every_store_is_the_mos_heads(): void
     {
         // A store manager who also holds the role globally, as some do on testing.
@@ -174,13 +219,13 @@ class AuthRulesSeederTest extends TestCase
     }
 
     /**
-     * A Maintenance request with the store context as the middleware sends it:
-     * any of path / query / body / header.
+     * A request (Maintenance unless said otherwise) with the store context as
+     * the middleware sends it: any of path / query / body / header.
      */
-    private function allowsWith(Model $actor, string $method, string $path, array $context): bool
+    private function allowsWith(Model $actor, string $method, string $path, array $context, string $service = 'Maintenance'): bool
     {
         [$authorized] = app(AuthorizationResolver::class)->check(
-            'Maintenance', $method, $path, null, [], [], [],
+            $service, $method, $path, null, [], [], [],
             $context + ['path' => [], 'query' => [], 'body' => [], 'header' => []],
             $actor
         );
