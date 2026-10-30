@@ -138,6 +138,7 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
 
             // ── Parts and stock ──────────────────────────────────────────────
             ['GET', '/parts', 'none', ['mos']],
+            ['GET', '/parts/*', 'none', ['mos']],
             ['POST', '/parts', 'none', ['mos']],
             ['PATCH', '/parts/*', 'none', ['mos']],
             ['DELETE', '/parts/*', 'none', ['mos']],
@@ -218,6 +219,10 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // One payment = one invoice we paid, to one technician or supplier.
             ['GET', '/payments', 'none', ['mos']],
             ['POST', '/payments', 'none', ['mos']],
+            // Pickers: the issues a payment line or a stock movement is for, and
+            // the inspections an Inspection line can pay.
+            ['GET', '/ticket-issues', 'none', ['mos']],
+            ['GET', '/issue-inspections', 'none', ['mos']],
             ['GET', '/payments/*', 'none', ['mos']],
             ['POST', '/payments/*/edit', 'none', ['mos']],
             ['POST', '/payments/*/mistaken', 'none', ['mos']],
