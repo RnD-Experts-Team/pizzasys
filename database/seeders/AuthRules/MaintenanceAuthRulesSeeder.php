@@ -64,7 +64,7 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['PATCH', '/stores/*/tickets/*/issues/*', 'scoped', ['mos']],
             ['POST', '/stores/*/tickets/*/issues/*/cancel', 'scoped', ['mos']],
 
-            // The v2 workflow (docs/MAINTENANCE-V2.md in MaintenancePizza). Every
+            // The issue workflow (docs/MAINTENANCE.md in MaintenancePizza). Every
             // step is the MOS's at their stores, except the two the STORE takes:
             // answering a "we need more information" request and confirming the
             // repair works. Approval has its own path so it can later be limited
@@ -254,7 +254,7 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['PUT', '/issues/*/troubleshooting'],
             ['DELETE', '/issues/*/troubleshooting'],
 
-            // Maintenance v2 (2026-11): per-ticket records, hand-logged attendance,
+            // Maintenance refactor (2026-11): per-ticket records, hand-logged attendance,
             // daily pay sheets and the free status setter are gone. Bookings,
             // inspections, clocked trips and payments replace them.
             ['POST', '/stores/*/tickets/*/assignments'],
