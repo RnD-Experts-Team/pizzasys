@@ -53,7 +53,8 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             // ── Manager dashboard and labor reports ──────────────────────────
             ['GET', '/v1/stores/*/manager-dashboard/*', 'scoped', ['reports view']],
             ['GET', '/v1/stores/*/labor/*', 'scoped', ['reports view']],
-            ['GET', '/v1/reports', 'scoped', ['reports view'], 'allows_empty' => true],
+            // Business Reports: the labor report for stores[] over a range (each store checked; none → global).
+            ['GET', '/v1/reports/labor', 'scoped', ['reports view'], 'allows_empty' => true],
             ['GET', '/v1/reports/*/*', 'scoped', ['reports view']],
             ['GET', '/average-hourly-pay/*/*', 'scoped', ['reports view']],
             ['GET', '/high-hours-employees/*/*', 'scoped', ['reports view']],
@@ -105,6 +106,8 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/v1/milestone-gift-questions/**'],
             ['PUT', '/v1/milestone-gift-questions/**'],
             ['DELETE', '/v1/milestone-gift-questions/**'],
+            // The old multi-store bundle, replaced by /v1/reports/labor.
+            ['GET', '/v1/reports'],
         ];
     }
 }

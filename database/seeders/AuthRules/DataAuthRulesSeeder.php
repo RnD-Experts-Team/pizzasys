@@ -37,8 +37,15 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/reports/employees/*/*', 'scoped', ['reports view']],
             // Hourly sales next to the schedule builder; schedulers read it too.
             ['GET', '/reports/scheduling-insights/*', 'scoped', ['reports view', 'view schedule', 'manage schedule']],
-            // Body `stores` is a list, or "all" (no store ids → global check).
-            ['POST', '/reports/multi-dashboard', 'scoped', ['reports view'], 'allows_empty' => true],
+            // Business Reports (V1 for many stores over a range): body `stores` is a
+            // list (every store checked) or "all" (no store ids → global check).
+            ['POST', '/reports/business/sales', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/operations', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/menu', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/orders', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/quality', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/debriefs', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/store-score', 'scoped', ['reports view'], 'allows_empty' => true],
 
             // ── Exports ──────────────────────────────────────────────────────
             ['GET', '/export/*', 'none', ['export data']],
@@ -167,6 +174,8 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
         return [
             // Written for a store-scoped path; the route is /dough-sauce/daily-plans.
             ['GET', '/stores/*/dough-sauce/daily-plans'],
+            // Replaced by the /reports/business/* sections.
+            ['POST', '/reports/multi-dashboard'],
         ];
     }
 }
