@@ -42,7 +42,6 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/stores/*/troubleshooting-fixes', 'scoped', ['reports view', 'mos']],
 
             // ── One ticket ───────────────────────────────────────────────────
-            ['DELETE', '/stores/*/tickets/*', 'scoped', ['mos']],
             ['POST', '/stores/*/tickets/*/restore', 'scoped', ['mos']],
             ['POST', '/stores/*/tickets/*/cancel', 'scoped', ['mos']],
             ['POST', '/stores/*/tickets/*/final-note', 'scoped', ['mos']],
@@ -135,6 +134,12 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['DELETE', '/categories/*', 'none', ['mos']],
             ['POST', '/categories/*/notes', 'none', ['mos']],
             ['POST', '/categories/*/attachments', 'none', ['mos']],
+
+            // How we paid: the editable list behind a payment's method (2026-11-04).
+            ['GET', '/payment-methods', 'none', ['mos']],
+            ['POST', '/payment-methods', 'none', ['mos']],
+            ['PATCH', '/payment-methods/*', 'none', ['mos']],
+            ['DELETE', '/payment-methods/*', 'none', ['mos']],
 
             // ── Parts and stock ──────────────────────────────────────────────
             ['GET', '/parts', 'none', ['mos']],
@@ -253,6 +258,9 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
         return [
             ['PUT', '/issues/*/troubleshooting'],
             ['DELETE', '/issues/*/troubleshooting'],
+
+            // Tickets can no longer be deleted (2026-11-04).
+            ['DELETE', '/stores/*/tickets/*'],
 
             // Maintenance refactor (2026-11): per-ticket records, hand-logged attendance,
             // daily pay sheets and the free status setter are gone. Bookings,
