@@ -29,6 +29,10 @@ class ScreensAuthRulesSeeder extends AuthRuleSeeder
             // EVERY store in stores[]; the endpoints filter on stores[] only.
             ['GET', '/usage/report', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
             ['GET', '/usage/timeline', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
+            // Report builder datasets (contract v1): the catalog is code, the query is the same
+            // monitoring data as /usage/report, so the same role, at every store in the body.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/screens.usage/query', 'scoped', ['screens manager'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
         ];
     }
 

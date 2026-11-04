@@ -31,6 +31,14 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/audits/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
             ['GET', '/audits/ratings-summary/**', 'scoped', ['reports view', 'qa audit']],
 
+            // ── Report builder datasets (each has its own literal route) ─────
+            // The catalog is code, the same for everyone; each dataset reuses the
+            // permissions of the list endpoint that already shows the same data.
+            // The body's `stores` are store codes; an empty list is head office.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/audit.cleaning/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/audit.evaluations/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+
             // ── QA catalog: entities and categories ──────────────────────────
             ['GET', '/entities', 'none', ['qa audit', 'qa admin']],
             ['POST', '/entities', 'none', ['qa admin']],

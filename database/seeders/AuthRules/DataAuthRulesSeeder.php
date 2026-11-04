@@ -37,12 +37,72 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/reports/employees/*/*', 'scoped', ['reports view']],
             // Hourly sales next to the schedule builder; schedulers read it too.
             ['GET', '/reports/scheduling-insights/*', 'scoped', ['reports view', 'view schedule', 'manage schedule']],
-            // Body `stores` is a list, or "all" (no store ids → global check).
-            ['POST', '/reports/multi-dashboard', 'scoped', ['reports view'], 'allows_empty' => true],
+            // Business Reports (V1 for many stores over a range): body `stores` is a
+            // list (every store checked) or "all" (no store ids → global check).
+            ['POST', '/reports/business/sales', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/operations', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/menu', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/orders', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/quality', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/debriefs', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/store-score', 'scoped', ['reports view'], 'allows_empty' => true],
 
             // ── Exports ──────────────────────────────────────────────────────
             ['GET', '/export/*', 'none', ['export data']],
             ['GET', '/reports/lc-archive-zip/*', 'none', ['export data']],
+
+            // ── Report builder (contract v1) ─────────────────────────────────
+            // The engine routes are open to any signed-in user: templates, previews
+            // and runs only ever read data through the dataset routes below, which
+            // carry the real permissions (one row per dataset, literal paths).
+            ['GET', '/report-datasets', 'none'],
+            ['GET', '/report-builder/catalog', 'none'],
+            ['POST', '/report-builder/preview', 'none'],
+            ['GET', '/report-builder/templates', 'none'],
+            ['POST', '/report-builder/templates', 'none'],
+            ['GET', '/report-builder/templates/*', 'none'],
+            ['PUT', '/report-builder/templates/*', 'none'],
+            ['DELETE', '/report-builder/templates/*', 'none'],
+            ['POST', '/report-builder/run', 'none'],
+            ['GET', '/report-builder/runs', 'none'],
+            ['GET', '/report-builder/runs/*', 'none'],
+            ['GET', '/report-builder/runs/*/rows', 'none'],
+            ['GET', '/report-builder/runs/*/download', 'none'],
+            ['GET', '/report-builder/schedules', 'none'],
+            ['POST', '/report-builder/schedules', 'none'],
+            ['GET', '/report-builder/schedules/*', 'none'],
+            ['PUT', '/report-builder/schedules/*', 'none'],
+            ['DELETE', '/report-builder/schedules/*', 'none'],
+            // Datasets: body `stores` is a list of store codes; empty = global check.
+            ['POST', '/report-datasets/data.daily_sales/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.employee_debriefs/query', 'scoped', ['reports view', 'data entry'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.key_values/query', 'scoped', ['reports view', 'data entry', 'keys handling'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            // Warehouse and aggregation datasets: the same data the sales, items, financial and cash reports show.
+            ['POST', '/report-datasets/data.daily_items/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.hourly_sales/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.hourly_items/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.orders/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.order_lines/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.summary_items/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.summary_sales/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.summary_transactions/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.waste/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.cash/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.financials/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.transactions/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.alta_cogs/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.alta_ingredient_orders/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.alta_ingredient_usage/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.alta_waste/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            // Goals follow the /stores/*/goals rows; the app-table reports follow their /reports/... rows.
+            ['POST', '/report-datasets/data.goals/query', 'scoped', ['keys handling'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.non_negotiables/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.go_to_calls/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.transfers/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.inventory_orders/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.cleaning_reviews/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.customer_service/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/data.hnr_plus/query', 'scoped', ['reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
 
             // ── Imports ──────────────────────────────────────────────────────
             ['GET', '/manual-import', 'none', ['import data']],
@@ -114,6 +174,8 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
         return [
             // Written for a store-scoped path; the route is /dough-sauce/daily-plans.
             ['GET', '/stores/*/dough-sauce/daily-plans'],
+            // Replaced by the /reports/business/* sections.
+            ['POST', '/reports/multi-dashboard'],
         ];
     }
 }

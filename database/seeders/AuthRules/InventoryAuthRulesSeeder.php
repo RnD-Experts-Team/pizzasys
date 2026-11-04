@@ -49,6 +49,17 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
             // gives the intended result: the head passes, workers get 403 and use
             // the per-store route above for their own stores.
             ['GET', '/inventory/counts', 'none', ['dough and sauce']],
+
+            // ── Report builder datasets (same contract in every service) ─────
+            // The catalog is code, identical for everyone; each dataset query takes
+            // the permission of the existing route that shows the same data. The
+            // body's `stores` are store codes; an empty list is the global check.
+            // Entries are the counts' headers: GET /inventory/stores/*/entries.
+            // Counts are the Dough & Sauce counts: the same permission and role as
+            // GET /inventory/stores/*/counts.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/inventory.entries/query', 'scoped', ['inventory handling'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/inventory.counts/query', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
         ];
     }
 }
