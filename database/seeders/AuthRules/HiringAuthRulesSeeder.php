@@ -28,6 +28,20 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/v1/reference-catalog', 'none'],
             ['PUT', '/v1/reference-catalog', 'none', ['hiring admin']],
 
+            // ── Report builder datasets (contract v1) ────────────────────────
+            // Body `stores` is a list of store codes; empty = global check. The
+            // pay dataset has its own rule and the pay-edit permissions (hiring
+            // admin and specialist), not the wider roster ones.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/hiring.employees/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.status_changes/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.pay/query', 'scoped', ['hiring admin', 'hiring specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            // Each of these takes the permissions of the endpoint that shows the same data.
+            ['POST', '/report-datasets/hiring.metrics/query', 'scoped', ['import data'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.hiring_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.separation_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.shirt_milestones/query', 'scoped', ['reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+
             // ── Hiring and separation requests ───────────────────────────────
             ['GET', '/v1/requests', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true],
             ['GET', '/v1/stores/*/requests', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession']],

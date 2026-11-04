@@ -27,6 +27,8 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/tickets', 'scoped', ['mos', 'reports view'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
             ['POST', '/tickets', 'none', ['reports view', 'mos']],
             ['GET', '/tickets/analytics', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
+            // Unified calendar feed: stores=a,b in the query, policy all (route comment).
+            ['GET', '/calendar/feed', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
             ['GET', '/tickets/*/issues', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['store_id']], 'roles' => ['MOS']],
             // Money and technician coverage are the MOS head's view, not a store's:
             // matched before the store-readable wildcard below.
@@ -243,6 +245,28 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // Approval thresholds and how long an idle trip link lives.
             ['GET', '/maintenance-settings', 'none', ['mos']],
             ['PUT', '/maintenance-settings', 'none', ['mos']],
+
+            // ── Report builder datasets ──────────────────────────────────────
+            // The catalog is open to any signed-in user (it is code). Each
+            // dataset has its own literal row; body `stores` is a list of store
+            // codes. Tickets, issues and bookings have the permissions of the
+            // ticket list (an empty list, every store, is the MOS head's).
+            // Pay, purchases, stock and trips have the permissions of their list
+            // endpoints above: the MOS head only. Storage, stock, payments and
+            // a technician's clock are global (their grain has no store), so
+            // the MOS head's `stores` never narrows them.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/maintenance.ticket_issues/query', 'scoped', ['mos', 'reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['MOS']],
+            ['POST', '/report-datasets/maintenance.assignments/query', 'scoped', ['mos', 'reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['MOS']],
+            ['POST', '/report-datasets/maintenance.tickets/query', 'scoped', ['mos', 'reports view'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['MOS']],
+            ['POST', '/report-datasets/maintenance.payment_lines/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.payments/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.technician_purchases/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.stock_movements/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.stock_balances/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.stock_counts/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.trips/query', 'none', ['mos']],
+            ['POST', '/report-datasets/maintenance.trip_stops/query', 'none', ['mos']],
 
             // ── Legacy maintenance API (attend.pnepizza.com) ─────────────────
             // No route in MaintenancePizza; the dashboard's old /maintenance page still checks these.

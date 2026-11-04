@@ -111,6 +111,18 @@ class OperationsAuthRulesSeeder extends AuthRuleSeeder
             // ── Humanity sync for one employee ───────────────────────────────
             ['GET', '/v1/stores/*/employees/*/sync-status', 'scoped', self::READ],
             ['POST', '/v1/stores/*/employees/*/humanity-sync', 'scoped', self::WRITE],
+
+            // ── Report builder datasets (at the API root, outside /v1) ───────
+            // The catalog is code, the same for everyone. Each dataset reads
+            // the store codes in the body's `stores`; none sent = every store,
+            // which only a global holder passes.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/operations.actual_shifts/query', 'scoped', self::READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/operations.scheduled_shifts/query', 'scoped', self::READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/operations.time_off/query', 'scoped', self::READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/operations.employee_skills/query', 'scoped', self::SKILLS_READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/operations.clock_segments/query', 'scoped', self::READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/operations.availability/query', 'scoped', self::READ, 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
         ];
     }
 

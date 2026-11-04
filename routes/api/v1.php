@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\EmployeeAuthController;
+use App\Http\Controllers\Api\V1\Auth\ReportScheduleTokenController;
 use App\Http\Controllers\Api\V1\Auth\TokenVerifyController;
 use App\Http\Controllers\Api\V1\Employees\EmployeeManagementController;
 use App\Http\Controllers\Api\V1\Stores\StoreController;
@@ -64,6 +65,8 @@ Route::middleware(['auth:sanctum', 'tokenable.user', 'throttle:api'])->group(fun
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/me', [AuthController::class, 'updateMe']);
         Route::get('/general-overview', [AuthController::class, 'authorizationOverview']);
+        Route::post('/report-schedule-tokens', [ReportScheduleTokenController::class, 'store']);
+        Route::delete('/report-schedule-tokens/{schedule_id}', [ReportScheduleTokenController::class, 'destroy'])->whereNumber('schedule_id');
 
         Route::post('/impersonate/{user}', [AuthController::class, 'impersonate'])
             ->middleware('permission:impersonate users');

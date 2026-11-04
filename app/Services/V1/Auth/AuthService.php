@@ -272,7 +272,7 @@ class AuthService
 
     public function refreshToken(User $user): array
     {
-        $user->tokens()->delete();
+        $user->tokens()->whereIn('name', ['auth-token', 'impersonation-token'])->delete();
 
         $tokenResult = $user->createToken('auth-token');
         $token = $tokenResult->plainTextToken;

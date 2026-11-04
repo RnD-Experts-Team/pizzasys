@@ -109,6 +109,13 @@ class ToolboxAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/v1/workbooks/*/rows/*', 'none'],
             ['DELETE', '/v1/workbooks/*/rows/*', 'none'],
             ['POST', '/v1/workbooks/*/rows/*/visibility', 'none'],
+
+            // ── Report datasets (outside /v1). Body `stores` is a list of store
+            // codes; an empty list is the global check. Tickets reuse the
+            // permission of the store queue. Breaks are not offered: they belong
+            // to a user, not a store.
+            ['GET', '/report-datasets', 'none'],
+            ['POST', '/report-datasets/toolbox.tickets/query', 'scoped', ['view tickets'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
         ];
     }
 }
