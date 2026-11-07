@@ -20,6 +20,7 @@ use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
 use App\Services\AuthEvents\ModelChangeSet;
 use App\Jobs\PublishOutboxEventJob;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
@@ -270,20 +271,29 @@ class AuthService
         return null;
     }
 
+    /**
+     * Swaps the token that made the request for a new one of the same name.
+     * The user's other tokens (other devices, report schedules) stay valid.
+     */
     public function refreshToken(User $user): array
     {
-        $user->tokens()->whereIn('name', ['auth-token', 'impersonation-token'])->delete();
+        $current = $user->currentAccessToken();
+        $current = $current instanceof PersonalAccessToken ? $current : null;
 
-        $tokenResult = $user->createToken('auth-token');
-        $token = $tokenResult->plainTextToken;
+        return DB::transaction(function () use ($user, $current) {
+            $tokenResult = $user->createToken($current?->name ?? 'auth-token');
+            $token = $tokenResult->plainTextToken;
 
-        $tokenResult->accessToken->expires_at = now()->addDays(3);
-        $tokenResult->accessToken->save();
+            $tokenResult->accessToken->expires_at = now()->addDays(3);
+            $tokenResult->accessToken->save();
 
-        return [
-            'token' => $token,
-            'token_type' => 'Bearer'
-        ];
+            $current?->delete();
+
+            return [
+                'token' => $token,
+                'token_type' => 'Bearer'
+            ];
+        });
     }
 
     public function updateMe(User $user, array $data, ?UploadedFile $imageFile = null, ?Request $request = null): array
