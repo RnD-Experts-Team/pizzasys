@@ -52,11 +52,14 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
 
             // ── Custom reports (QA admins only) ──────────────────────────────
             ['GET', '/custom-reports', 'none', ['qa admin']],
-            ['POST', '/custom-reports', 'none', ['qa admin']],
+            // Creating, replacing and deleting custom reports are blocked for everyone (owner,
+            // 2026-11-07): `manage custom reports` is held by no role. A rule switched off would
+            // OPEN the route instead (allow_if_no_rule). PATCH and the reads stay with qa admin.
+            ['POST', '/custom-reports', 'none', ['manage custom reports']],
             ['GET', '/custom-reports/*', 'none', ['qa admin']],
-            ['PUT', '/custom-reports/*', 'none', ['qa admin']],
+            ['PUT', '/custom-reports/*', 'none', ['manage custom reports']],
             ['PATCH', '/custom-reports/*', 'none', ['qa admin']],
-            ['DELETE', '/custom-reports/*', 'none', ['qa admin']],
+            ['DELETE', '/custom-reports/*', 'none', ['manage custom reports']],
 
             // ── Cleaning: store due lists (store managers, per store) ────────
             ['GET', '/cleaning/stores/*/dates/*/due', 'scoped', ['cleaning specialist']],

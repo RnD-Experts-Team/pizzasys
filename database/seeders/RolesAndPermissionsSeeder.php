@@ -34,6 +34,9 @@ class RolesAndPermissionsSeeder extends Seeder
         // Data
         'export data',
         'reports view',
+        // The Complaints and Employee Feedback cards on DSPR V1 and Business Reports (held
+        // globally, or at the store shown). No role holds it yet (2026-11-07).
+        'view complaints',
         'keys handling',
         'data entry',
         'import data',
@@ -41,6 +44,9 @@ class RolesAndPermissionsSeeder extends Seeder
         // QA
         'qa audit',
         'qa admin',
+        // Creating, replacing and deleting QA custom reports. No role holds it: blocked for
+        // everyone (2026-11-07); grant it to re-open them.
+        'manage custom reports',
         'cleaning specialist',
         'dough and sauce',
 
@@ -92,6 +98,8 @@ class RolesAndPermissionsSeeder extends Seeder
         'Cleaning Specialist' => ['cleaning specialist'],
         'Dough and Sauce' => ['dough and sauce', 'reports view', 'data entry', 'inventory handling'],
         'Scheduling Handler' => ['view schedule', 'manage schedule', 'manage skills'],
+        // Added on the server (pizza_auth dump, 2026-11-07): the Screen Project monitoring report.
+        'Upper MGMT' => ['screens manager'],
     ];
 
     public function run(): void
