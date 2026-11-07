@@ -116,8 +116,8 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        // Deletes every token the user has. Keyed on the user, not the token:
-        // each refresh hands out a new token, which would be a fresh bucket.
+        // Swaps the calling token for a new one. Keyed on the user, not the
+        // token: each refresh hands out a new token, which would be a fresh bucket.
         RateLimiter::for('auth-refresh', function (Request $request) {
             $user = $request->user() ? 'u:'.$request->user()->getKey() : self::tokenKey($request);
 

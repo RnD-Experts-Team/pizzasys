@@ -182,6 +182,7 @@ Route::middleware(['auth:sanctum', 'tokenable.user', 'throttle:api'])->group(fun
         Route::post('/remove', [UserRoleStoreController::class, 'remove']);
         Route::post('/toggle', [UserRoleStoreController::class, 'toggle']);
         Route::post('/bulk-assign', [UserRoleStoreController::class, 'bulkAssign']);
+        Route::post('/apply', [UserRoleStoreController::class, 'apply']);
 
         Route::get('/user-assignments', [UserRoleStoreController::class, 'getUserAssignments']);
         Route::get('/store-assignments', [UserRoleStoreController::class, 'getStoreAssignments']);

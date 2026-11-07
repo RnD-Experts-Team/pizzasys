@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Users\AssignUserRoleStoreRequest;
 use App\Services\V1\Users\UserRoleStoreService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class UserRoleStoreController extends Controller
 {
@@ -100,6 +101,45 @@ class UserRoleStoreController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to toggle user role store',
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Several assign / toggle / remove ops for one user, all or nothing. Answers
+     * with the user's resulting assignments, inactive ones included.
+     */
+    public function apply(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'ops' => 'required|array|min:1',
+            'ops.*.op' => 'required|string|in:assign,toggle,remove',
+            'ops.*.role_id' => 'required|integer|exists:roles,id',
+            'ops.*.store_id' => 'required|integer|exists:stores,id',
+            'ops.*.metadata' => 'sometimes|nullable|array|prohibited_unless:ops.*.op,assign',
+            'ops.*.is_active' => 'sometimes|boolean|prohibited_if:ops.*.op,remove',
+        ]);
+
+        try {
+            $assignments = $this->userRoleStoreService->applyUserRoleStoreOps(
+                (int) $request->user_id,
+                $request->ops,
+                $request
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Store access applied successfully',
+                'data' => ['assignments' => $assignments]
+            ]);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to apply store access',
                 'error' => $e->getMessage()
             ], 400);
         }

@@ -5,6 +5,7 @@ namespace App\Services\V1\Users;
 use App\Models\UserRoleStore;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 use App\Services\AuthEvents\AuthEventFactory;
 use App\Services\AuthEvents\AuthOutboxService;
@@ -113,6 +114,55 @@ class UserRoleStoreService
 
             return true;
         });
+    }
+
+    /**
+     * Applies a user's store-access changes in one transaction: every op lands,
+     * each recording the same event its own endpoint records, or none does.
+     * The first op that cannot apply throws a ValidationException on `ops.N`.
+     *
+     * On `toggle`, `is_active` (optional) is the state the row must end in, so a
+     * change computed from a stale screen fails instead of flipping it back.
+     */
+    public function applyUserRoleStoreOps(int $userId, array $ops, ?Request $request = null)
+    {
+        DB::transaction(function () use ($userId, $ops, $request) {
+            foreach (array_values($ops) as $i => $op) {
+                $roleId = (int) $op['role_id'];
+                $storeId = (int) $op['store_id'];
+
+                $current = UserRoleStore::where('user_id', $userId)
+                    ->where('role_id', $roleId)
+                    ->where('store_id', $storeId)
+                    ->first();
+
+                $error = match (true) {
+                    $op['op'] === 'assign' && $current !== null => 'This role is already assigned at this store.',
+                    $op['op'] !== 'assign' && $current === null => 'Assignment not found.',
+                    $op['op'] === 'toggle' && isset($op['is_active']) && (bool) $op['is_active'] === (bool) $current->is_active
+                        => 'The assignment is already ' . ($current->is_active ? 'active' : 'inactive') . '.',
+                    default => null,
+                };
+
+                if ($error !== null) {
+                    throw ValidationException::withMessages(["ops.$i" => $error]);
+                }
+
+                match ($op['op']) {
+                    'assign' => $this->assignUserRoleStore([
+                        'user_id' => $userId,
+                        'role_id' => $roleId,
+                        'store_id' => $storeId,
+                        'metadata' => $op['metadata'] ?? null,
+                        'is_active' => $op['is_active'] ?? true,
+                    ], $request),
+                    'toggle' => $this->toggleUserRoleStore($userId, $roleId, $storeId, $request),
+                    'remove' => $this->removeUserRoleStore($userId, $roleId, $storeId, $request),
+                };
+            }
+        });
+
+        return $this->getUserRoleStoreAssignments($userId);
     }
 
     public function getUserRoleStoreAssignments(int $userId, int $storeId = null)

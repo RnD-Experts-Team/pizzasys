@@ -235,10 +235,10 @@
                 "tags": ["Auth"],
                 "security": [{ "bearerAuth": [] }],
                 "summary": "Refresh token",
-                "description": "User token only. An employee token here returns 403 — employees have no refresh endpoint; their tokens live until logout, password change, deactivation, or admin revocation.",
+                "description": "User token only. An employee token here returns 403 — employees have no refresh endpoint; their tokens live until logout, password change, deactivation, or admin revocation.\n\nRevokes only the token that made the request and returns a new one of the same kind (login or impersonation), valid for 3 days. The user's other tokens — other devices, report-schedule tokens — stay valid. Rate limit `auth-refresh`: 30/min per user.",
                 "responses": {
                     "200": {
-                        "description": "Token refreshed",
+                        "description": "Token refreshed; the token sent with this request no longer works",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1883,6 +1883,39 @@
                 }
             }
         },
+        "/user-role-store/apply": {
+            "post": {
+                "tags": ["User Role Store Assignments"],
+                "summary": "Apply several store-access changes for one user, all or nothing",
+                "description": "Requires permission: manage user role assignments. Runs the ops in order in ONE database transaction: either every op is applied or none is. Each op records the same outbox event as its own endpoint (`auth.v1.assignment.user_role_store.assigned` / `.toggled` / `.removed`), one per op, published only if the whole batch commits.\n\n- `assign`: creates the row; fails if the user already holds that role at that store. `metadata` and `is_active` (default true) set the new row.\n- `toggle`: flips `is_active`; fails if the row does not exist. Optional `is_active` is the state the row must end in: if it is already in that state the op fails, so a change computed from a stale screen cannot flip it back.\n- `remove`: deletes the row; fails if it does not exist.\n\n`metadata` is only allowed on `assign`, `is_active` not on `remove`. Answers with the user's assignments after the change, inactive ones included — the same shape as GET /user-role-store/user-assignments.",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplyUserRoleStoreRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "All ops applied; the user's resulting assignments",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserRoleStoreListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid body, or an op that cannot apply (error key `ops.N`, e.g. \"Assignment not found.\"); nothing was changed"
+                    }
+                }
+            }
+        },
         "/user-role-store/user-assignments": {
             "get": {
                 "tags": ["User Role Store Assignments"],
@@ -3414,6 +3447,28 @@
                                 "store_id": { "type": "integer" },
                                 "metadata": { "type": "object" },
                                 "is_active": { "type": "boolean" }
+                            }
+                        }
+                    }
+                }
+            },
+            "ApplyUserRoleStoreRequest": {
+                "type": "object",
+                "required": ["user_id", "ops"],
+                "properties": {
+                    "user_id": { "type": "integer" },
+                    "ops": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "required": ["op", "role_id", "store_id"],
+                            "properties": {
+                                "op": { "type": "string", "enum": ["assign", "toggle", "remove"] },
+                                "role_id": { "type": "integer" },
+                                "store_id": { "type": "integer" },
+                                "metadata": { "type": ["object", "null"], "description": "assign only" },
+                                "is_active": { "type": "boolean", "description": "assign: initial state (default true). toggle: the state the row must end in. Not allowed on remove." }
                             }
                         }
                     }
