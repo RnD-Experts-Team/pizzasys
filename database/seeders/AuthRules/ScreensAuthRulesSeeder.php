@@ -31,7 +31,7 @@ class ScreensAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/usage/timeline', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
             // "Boots on the Ground" on the store dashboards (DSPR V1, Business Reports): their
             // permission, at EVERY store in stores[], so a manager sees their store's managers.
-            ['GET', '/usage/boots-on-the-ground', 'scoped', ['reports view'], 'sources' => ['query' => ['stores']]],
+            ['GET', '/usage/boots-on-the-ground', 'scoped', ['reports view', 'business reports'], 'sources' => ['query' => ['stores']]],
             // Report builder datasets (contract v1): the catalog is code, the query is the same
             // monitoring data as /usage/report, so the same role, at every store in the body.
             ['GET', '/report-datasets', 'none'],

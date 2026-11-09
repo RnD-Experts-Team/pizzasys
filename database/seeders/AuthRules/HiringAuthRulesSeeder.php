@@ -54,7 +54,7 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/v1/stores/*/manager-dashboard/*', 'scoped', ['reports view']],
             ['GET', '/v1/stores/*/labor/*', 'scoped', ['reports view']],
             // Business Reports: the labor report for stores[] over a range (each store checked; none → global).
-            ['GET', '/v1/reports/labor', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['GET', '/v1/reports/labor', 'scoped', ['business reports'], 'allows_empty' => true],
             ['GET', '/v1/reports/*/*', 'scoped', ['reports view']],
             ['GET', '/average-hourly-pay/*/*', 'scoped', ['reports view']],
             ['GET', '/high-hours-employees/*/*', 'scoped', ['reports view']],
