@@ -46,6 +46,7 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/reports/business/quality', 'scoped', ['reports view'], 'allows_empty' => true],
             ['POST', '/reports/business/debriefs', 'scoped', ['reports view'], 'allows_empty' => true],
             ['POST', '/reports/business/store-score', 'scoped', ['reports view'], 'allows_empty' => true],
+            ['POST', '/reports/business/sales-history', 'scoped', ['reports view'], 'allows_empty' => true],
 
             // ── Exports ──────────────────────────────────────────────────────
             ['GET', '/export/*', 'none', ['export data']],
