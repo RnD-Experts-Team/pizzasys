@@ -34,6 +34,8 @@ class RolesAndPermissionsSeeder extends Seeder
         // Data
         'export data',
         'reports view',
+        // Business Reports (many stores over any range) — Upper MGMT only.
+        'business reports',
         // The Complaints and Employee Feedback cards on DSPR V1 and Business Reports (held
         // globally, or at the store shown). No role holds it yet (2026-11-07).
         'view complaints',
@@ -99,7 +101,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'Dough and Sauce' => ['dough and sauce', 'reports view', 'data entry', 'inventory handling'],
         'Scheduling Handler' => ['view schedule', 'manage schedule', 'manage skills'],
         // Added on the server (pizza_auth dump, 2026-11-07): the Screen Project monitoring report.
-        'Upper MGMT' => ['screens manager'],
+        'Upper MGMT' => ['screens manager', 'business reports'],
     ];
 
     public function run(): void

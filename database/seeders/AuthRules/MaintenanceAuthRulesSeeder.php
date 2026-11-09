@@ -34,7 +34,7 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // matched before the store-readable wildcard below.
             ['GET', '/maintenance-analytics/finances', 'none', ['mos'], 'priority' => 0],
             ['GET', '/maintenance-analytics/coverage', 'none', ['mos'], 'priority' => 0],
-            ['GET', '/maintenance-analytics/*', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
+            ['GET', '/maintenance-analytics/*', 'scoped', ['reports view', 'mos', 'business reports'], 'allows_empty' => true],
             ['GET', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],
             ['POST', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],
             ['GET', '/stores/*/tickets/analytics', 'scoped', ['reports view', 'mos']],

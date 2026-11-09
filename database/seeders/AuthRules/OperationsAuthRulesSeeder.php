@@ -103,7 +103,7 @@ class OperationsAuthRulesSeeder extends AuthRuleSeeder
             ['DELETE', '/v1/skills/*', 'none', self::SKILLS_WRITE],
             // Several stores at once (?storeIds[]=…, each one checked); none sent
             // means every store, which only a global holder passes.
-            ['GET', '/v1/skills/overview', 'scoped', self::SKILLS_READ, 'allows_empty' => true, 'sources' => ['query' => ['storeIds']]],
+            ['GET', '/v1/skills/overview', 'scoped', [...self::SKILLS_READ, 'business reports'], 'allows_empty' => true, 'sources' => ['query' => ['storeIds']]],
             ['GET', '/v1/stores/*/employees/*/skills', 'scoped', self::SKILLS_READ],
             ['POST', '/v1/stores/*/employees/*/skills/*', 'scoped', self::SKILLS_WRITE],
             ['DELETE', '/v1/stores/*/employees/*/skills/*', 'scoped', self::SKILLS_WRITE],
