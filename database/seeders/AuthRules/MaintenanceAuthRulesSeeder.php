@@ -93,6 +93,44 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/stores/*/tickets/*/warranties/*/notes', 'scoped', ['mos']],
             ['POST', '/stores/*/tickets/*/warranties/*/attachments', 'scoped', ['mos']],
 
+            // ── Tickets at no store ──────────────────────────────────────────
+            // A ticket at one of our storage locations, or at a place written
+            // in words, has no store to put in the URL: the same routes without
+            // the /stores/* segment. No store, so no store role can reach them --
+            // the MOS head (MOS held globally) runs them all, the answer and the
+            // confirmation included (there is no Store Manager to ask).
+            ['POST', '/tickets/*/restore', 'none', ['mos']],
+            ['POST', '/tickets/*/cancel', 'none', ['mos']],
+            ['POST', '/tickets/*/final-note', 'none', ['mos']],
+            ['POST', '/tickets/*/attachments', 'none', ['mos']],
+            ['GET', '/tickets/*/notes', 'none', ['mos']],
+            ['GET', '/tickets/*/notes/all', 'none', ['mos']],
+            ['POST', '/tickets/*/notes', 'none', ['mos']],
+            ['PATCH', '/tickets/*/notes/*/privacy', 'none', ['mos']],
+            ['GET', '/tickets/*/issues/*', 'none', ['mos']],
+            ['PATCH', '/tickets/*/issues/*', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/cancel', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/review', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/info-requests', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/info-requests/*/answer', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/inspections', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/inspections/*/result', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/approval-request', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/approvals', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/schedule', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/schedules/*/move', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/work-done', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/confirmation', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/close', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/jump', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/assigned-priority', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/notes', 'none', ['mos']],
+            ['POST', '/tickets/*/issues/*/attachments', 'none', ['mos']],
+            ['POST', '/tickets/*/assignments/*/notes', 'none', ['mos']],
+            ['POST', '/tickets/*/assignments/*/attachments', 'none', ['mos']],
+            ['POST', '/tickets/*/warranties/*/notes', 'none', ['mos']],
+            ['POST', '/tickets/*/warranties/*/attachments', 'none', ['mos']],
+
             // ── Issue catalog and troubleshooting guides ─────────────────────
             ['GET', '/issues', 'scoped', ['reports view', 'mos'], 'allows_empty' => true],
             ['POST', '/issues', 'scoped', ['mos'], 'allows_empty' => true],
