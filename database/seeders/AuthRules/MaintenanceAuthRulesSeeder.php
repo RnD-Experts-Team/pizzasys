@@ -271,6 +271,8 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/payments/*', 'none', ['mos']],
             ['POST', '/payments/*/edit', 'none', ['mos']],
             ['POST', '/payments/*/mistaken', 'none', ['mos']],
+            // Money that came back for a payment (undone by marking the refund mistaken, above).
+            ['POST', '/payments/*/refunds', 'none', ['mos']],
             ['POST', '/payments/*/notes', 'none', ['mos']],
             ['POST', '/payments/*/attachments', 'none', ['mos']],
             ['GET', '/unpaid-work', 'none', ['mos']],
