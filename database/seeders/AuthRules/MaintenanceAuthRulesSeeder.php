@@ -30,9 +30,11 @@ class MaintenanceAuthRulesSeeder extends AuthRuleSeeder
             // Unified calendar feed: stores=a,b in the query, policy all (route comment).
             ['GET', '/calendar/feed', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['stores']], 'roles' => ['MOS']],
             ['GET', '/tickets/*/issues', 'scoped', ['reports view', 'mos'], 'sources' => ['query' => ['store_id']], 'roles' => ['MOS']],
-            // Money and technician coverage are the MOS head's view, not a store's:
-            // matched before the store-readable wildcard below.
-            ['GET', '/maintenance-analytics/finances', 'none', ['mos'], 'priority' => 0],
+            // Technician coverage is the MOS head's view, not a store's: matched before
+            // the store-readable wildcard below. Money is too, and Business Reports
+            // also shows it: with stores[] it is checked per store (the report filters
+            // on them); without, the global check -- the MOS head.
+            ['GET', '/maintenance-analytics/finances', 'scoped', ['mos', 'business reports'], 'allows_empty' => true, 'priority' => 0, 'sources' => ['query' => ['stores']]],
             ['GET', '/maintenance-analytics/coverage', 'none', ['mos'], 'priority' => 0],
             ['GET', '/maintenance-analytics/*', 'scoped', ['reports view', 'mos', 'business reports'], 'allows_empty' => true],
             ['GET', '/stores/*/tickets', 'scoped', ['reports view', 'mos']],
