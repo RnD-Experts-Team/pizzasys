@@ -25,6 +25,9 @@ class ScreensAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/*/tokens/observer', 'scoped', ['screens manager']],
             // Managers' browsers report their own Screen Project usage.
             ['POST', '/*/usage/segments', 'scoped', ['screens user', 'screens manager']],
+            // Self-service: the signed-in person's own segments (the live "Today" view on the
+            // Screens page). The endpoint filters on the token's user only, so any signed-in user.
+            ['GET', '/usage/mine', 'none'],
             // The monitoring report, for screens managers (same as observer) at
             // EVERY store in stores[]; the endpoints filter on stores[] only.
             ['GET', '/usage/report', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
