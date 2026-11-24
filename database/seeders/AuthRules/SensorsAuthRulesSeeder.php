@@ -15,10 +15,10 @@ class SensorsAuthRulesSeeder extends AuthRuleSeeder
     protected function rules(): array
     {
         return [
-            ['GET', '/stores/sensors', 'none', ['mos']],
-            ['GET', '/stores/*/sensors', 'scoped', ['reports view', 'mos']],
-            ['GET', '/stores/*/reports', 'scoped', ['reports view', 'mos']],
-            ['GET', '/stores/*/reports/history', 'scoped', ['reports view', 'mos']],
+            ['GET', '/stores/sensors', 'none', ['mos'], 'roles' => ['Department Viewer']],
+            ['GET', '/stores/*/sensors', 'scoped', ['reports view', 'mos'], 'roles' => ['Department Viewer']],
+            ['GET', '/stores/*/reports', 'scoped', ['reports view', 'mos'], 'roles' => ['Department Viewer']],
+            ['GET', '/stores/*/reports/history', 'scoped', ['reports view', 'mos'], 'roles' => ['Department Viewer']],
         ];
     }
 }
