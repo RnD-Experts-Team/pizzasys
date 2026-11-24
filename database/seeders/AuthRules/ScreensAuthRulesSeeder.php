@@ -30,15 +30,15 @@ class ScreensAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/usage/mine', 'none'],
             // The monitoring report, for screens managers (same as observer) at
             // EVERY store in stores[]; the endpoints filter on stores[] only.
-            ['GET', '/usage/report', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
-            ['GET', '/usage/timeline', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']]],
+            ['GET', '/usage/report', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']], 'roles' => ['Department Viewer']],
+            ['GET', '/usage/timeline', 'scoped', ['screens manager'], 'sources' => ['query' => ['stores']], 'roles' => ['Department Viewer']],
             // "Boots on the Ground" on the store dashboards (DSPR V1, Business Reports): their
             // permission, at EVERY store in stores[], so a manager sees their store's managers.
-            ['GET', '/usage/boots-on-the-ground', 'scoped', ['reports view', 'business reports'], 'sources' => ['query' => ['stores']]],
+            ['GET', '/usage/boots-on-the-ground', 'scoped', ['reports view', 'business reports'], 'sources' => ['query' => ['stores']], 'roles' => ['Department Viewer']],
             // Report builder datasets (contract v1): the catalog is code, the query is the same
             // monitoring data as /usage/report, so the same role, at every store in the body.
             ['GET', '/report-datasets', 'none'],
-            ['POST', '/report-datasets/screens.usage/query', 'scoped', ['screens manager'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/screens.usage/query', 'scoped', ['screens manager'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
         ];
     }
 
