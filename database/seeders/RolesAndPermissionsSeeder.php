@@ -73,6 +73,9 @@ class RolesAndPermissionsSeeder extends Seeder
         'view tickets',
         'administer tickets',
         'create workbooks',
+        // Creating calendar tasks (POST /v1/calendar/tasks), held GLOBALLY: chosen
+        // specialists, never store managers. Events and reminders need nothing.
+        'create calendar tasks',
     ];
 
     /** Role => permissions it grants. super-admin gets everything. */
@@ -102,6 +105,9 @@ class RolesAndPermissionsSeeder extends Seeder
         'Scheduling Handler' => ['view schedule', 'manage schedule', 'manage skills'],
         // Added on the server (pizza_auth dump, 2026-11-07): the Screen Project monitoring report.
         'Upper MGMT' => ['screens manager', 'business reports'],
+        // Given to the specialists who may create calendar tasks — assign it to the
+        // user directly (global), not for a store: the rule checks it globally.
+        'Calendar Tasks' => ['create calendar tasks'],
     ];
 
     public function run(): void

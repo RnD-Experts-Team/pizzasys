@@ -17,6 +17,9 @@ class DataAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Per-store reports: /reports/{name}/{store}/{date} ────────────
+            // Unified calendar feed (sales, entries): store staff their own stores;
+            // every store only for Upper MGMT — sales are not a specialist's layer.
+            ['GET', '/calendar/feed', 'scoped', ['reports view', 'data entry', 'keys handling'], 'sources' => ['query' => ['stores']], 'roles' => ['Upper MGMT']],
             ['GET', '/reports/dspr/**', 'scoped', ['reports view']],
             ['GET', '/reports/dashboard/*/*', 'scoped', ['reports view']],
             ['GET', '/reports/customer-count-and-sales/*/*', 'scoped', ['reports view']],

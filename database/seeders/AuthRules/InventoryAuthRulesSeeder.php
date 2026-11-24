@@ -17,6 +17,10 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Units (global catalog) ───────────────────────────────────────
+            // Unified calendar feed (stores=a,b in the query, each one checked). Store
+            // staff see their own stores; the inventory specialists, holding their
+            // role globally, every store — and only this layer.
+            ['GET', '/inventory/calendar/feed', 'scoped', ['reports view', 'inventory handling', 'dough and sauce'], 'sources' => ['query' => ['stores']], 'roles' => ['Inventory Handler', 'Dough and Sauce']],
             ['GET', '/inventory/units', 'none', ['inventory handling']],
             ['GET', '/inventory/units/*', 'none', ['inventory handling']],
             ['POST', '/inventory/units', 'none', ['inventory handling']],

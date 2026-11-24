@@ -17,6 +17,8 @@ class NotificationsAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Announcements: admin ─────────────────────────────────────────
+            // Unified calendar feed: announcements are for everyone, like the visible feed.
+            ['GET', '/announcements/calendar/feed', 'none'],
             ['GET', '/announcements', 'none', ['manage announcements']],
             ['POST', '/announcements', 'none', ['manage announcements']],
             ['GET', '/announcements/*', 'none', ['manage announcements']],
