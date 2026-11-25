@@ -17,6 +17,9 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Employees ────────────────────────────────────────────────────
+            // Unified calendar feed (birthdays, last days, hiring needs): store staff
+            // their own stores; the hiring specialists, holding their role globally, every store.
+            ['GET', '/v1/calendar/feed', 'scoped', ['reports view', 'hiring specialist', 'hiring admin', 'employee obsession'], 'sources' => ['query' => ['stores']], 'roles' => ['Hiring Manager', 'Hiring Specialist', 'Employee Obsession']],
             ['GET', '/v1/employees', 'scoped', ['employee obsession', 'hiring specialist', 'hiring admin', 'reports view', 'cleaning specialist'], 'allows_empty' => true],
             ['GET', '/v1/stores/*/employees', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession']],
             ['GET', '/v1/stores/*/employees/*', 'scoped', ['reports view', 'hiring admin', 'hiring specialist', 'employee obsession']],

@@ -34,6 +34,9 @@ class OperationsAuthRulesSeeder extends AuthRuleSeeder
         return [
             // Auth-chain smoke test.
             ['GET', '/v1/health', 'none'],
+            // Unified calendar feed (shifts): store staff their own stores; the
+            // scheduling head, holding the role globally, every store.
+            ['GET', '/v1/calendar/feed', 'scoped', ['reports view', 'view schedule', 'manage schedule'], 'sources' => ['query' => ['stores']], 'roles' => ['Scheduling Handler']],
 
             // ── Week grid ────────────────────────────────────────────────────
             ['GET', '/v1/stores/*/schedule/week', 'scoped', self::READ],

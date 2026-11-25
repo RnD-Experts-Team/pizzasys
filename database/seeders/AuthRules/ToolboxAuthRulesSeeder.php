@@ -16,6 +16,8 @@ namespace Database\Seeders\AuthRules;
  *   view tickets       (per store) — the store's whole ticket queue
  *   administer tickets (global)    — the section / level / assignment catalog
  *   create workbooks   (per store) — creating items owned by a store
+ *   reports view       (per store) — the calendar feed of those stores
+ *   create calendar tasks (global) — creating calendar tasks (Calendar Tasks role)
  *
  * Toolbox refuses employee tokens outright.
  */
@@ -109,6 +111,31 @@ class ToolboxAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/v1/workbooks/*/rows/*', 'none'],
             ['DELETE', '/v1/workbooks/*/rows/*', 'none'],
             ['POST', '/v1/workbooks/*/rows/*/visibility', 'none'],
+
+            // ── Calendar ─────────────────────────────────────────────────────
+            // The unified feed: stores=a,b in the query, each one checked (policy all).
+            // The task specialists hold no store role, so their role is let through by name.
+            ['GET', '/v1/calendar/feed', 'scoped', ['reports view'], 'sources' => ['query' => ['stores']], 'roles' => ['Calendar Tasks']],
+            // Creating a TASK: only who holds `create calendar tasks` globally (the
+            // Calendar Tasks role: chosen specialists). Store managers never do.
+            ['POST', '/v1/calendar/tasks', 'none', ['create calendar tasks']],
+            // The store managers a task can be given to: the same people.
+            ['GET', '/v1/calendar/people', 'none', ['create calendar tasks']],
+            // Events and reminders: anyone. Toolbox refuses a task sent here.
+            ['POST', '/v1/calendar/events', 'none'],
+            // One item / cancel: Toolbox hides what is not yours (404) and lets
+            // only the creator cancel.
+            ['GET', '/v1/calendar/events/*', 'none'],
+            ['POST', '/v1/calendar/events/*/cancel', 'none'],
+            // Task steps. Open: a task given to a person has no store to check,
+            // and Toolbox lets only that person start / submit and only the
+            // creator approve / return.
+            ['POST', '/v1/calendar/tasks/*/*', 'none'],
+            // The caller's own reminders.
+            ['GET', '/v1/calendar/reminders', 'none'],
+            ['POST', '/v1/calendar/reminders/*/snooze', 'none'],
+            ['POST', '/v1/calendar/reminders/*/done', 'none'],
+            ['POST', '/v1/calendar/reminders/*/cancel', 'none'],
 
             // ── Report datasets (outside /v1). Body `stores` is a list of store
             // codes; an empty list is the global check. Tickets reuse the

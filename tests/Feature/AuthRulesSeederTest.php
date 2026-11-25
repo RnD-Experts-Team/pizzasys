@@ -127,6 +127,80 @@ class AuthRulesSeederTest extends TestCase
         $this->assertFalse($this->allows($manager, 'Toolbox', 'POST', '/v1/ticket-levels'));
     }
 
+    public function test_calendar_tasks_are_created_only_by_the_calendar_tasks_role(): void
+    {
+        $specialist = User::factory()->create();
+        $specialist->assignRole('Calendar Tasks');
+        $manager = $this->userWithStoreRole('Store Manager', $this->storeA);
+        $atA = ['body' => ['stores' => ['03795-00001']]];
+
+        // Creating a task: the role held globally, never a store manager.
+        $this->assertTrue($this->allowsWith($specialist, 'POST', '/v1/calendar/tasks', $atA, 'Toolbox'));
+        $this->assertTrue($this->allowsWith($specialist, 'POST', '/v1/calendar/tasks', [], 'Toolbox'), 'people / private / public: no stores');
+        $this->assertFalse($this->allowsWith($manager, 'POST', '/v1/calendar/tasks', $atA, 'Toolbox'));
+        $this->assertFalse($this->allowsWith($manager, 'POST', '/v1/calendar/tasks', [], 'Toolbox'));
+        $this->assertTrue($this->allows($specialist, 'Toolbox', 'GET', '/v1/calendar/people'));
+        $this->assertFalse($this->allows($manager, 'Toolbox', 'GET', '/v1/calendar/people'));
+
+        // The role given for a store only does not count: the check is global.
+        $atStoreOnly = $this->userWithStoreRole('Calendar Tasks', $this->storeA);
+        $this->assertFalse($this->allowsWith($atStoreOnly, 'POST', '/v1/calendar/tasks', $atA, 'Toolbox'));
+
+        // Events, reminders and the task steps stay open to everyone.
+        $this->assertTrue($this->allowsWith($manager, 'POST', '/v1/calendar/events', $atA, 'Toolbox'));
+        $this->assertTrue($this->allows($manager, 'Toolbox', 'POST', '/v1/calendar/tasks/12/start'));
+        $this->assertTrue($this->allows($manager, 'Toolbox', 'POST', '/v1/calendar/events/12/cancel'));
+        $this->assertTrue($this->allows($manager, 'Toolbox', 'GET', '/v1/calendar/reminders'));
+
+        // The feed: the manager's own stores; the specialists by role.
+        $this->assertTrue($this->allowsWith($manager, 'GET', '/v1/calendar/feed', ['query' => ['stores' => '03795-00001']], 'Toolbox'));
+        $this->assertFalse($this->allowsWith($manager, 'GET', '/v1/calendar/feed', ['query' => ['stores' => '03795-00001,03795-00002']], 'Toolbox'));
+        $this->assertTrue($this->allowsWith($specialist, 'GET', '/v1/calendar/feed', ['query' => ['stores' => '03795-00001,03795-00002']], 'Toolbox'));
+    }
+
+    public function test_calendar_feeds_store_staff_their_stores_specialists_their_own_layer_everywhere(): void
+    {
+        $manager = $this->userWithStoreRole('Store Manager', $this->storeA);
+        $plain = User::factory()->create();
+        $own = ['query' => ['stores' => '03795-00001']];
+        $both = ['query' => ['stores' => '03795-00001,03795-00002']];
+
+        // service => feed path, and a specialist role (held globally) that sees it in every store
+        $feeds = [
+            'Inventory' => ['/inventory/calendar/feed', 'Inventory Handler'],
+            'QA' => ['/cleaning/calendar/feed', 'Cleaning Specialist'],
+            'Maintenance' => ['/calendar/feed', 'MOS'],
+            'Hiring' => ['/v1/calendar/feed', 'Hiring Specialist'],
+            'Operations' => ['/v1/calendar/feed', 'Scheduling Handler'],
+            'Data' => ['/calendar/feed', 'Upper MGMT'],
+            'Toolbox' => ['/v1/calendar/feed', 'Calendar Tasks'],
+        ];
+
+        foreach ($feeds as $service => [$path, $role]) {
+            $this->assertTrue($this->allowsWith($manager, 'GET', $path, $own, $service), "$service: a manager, own store");
+            $this->assertFalse($this->allowsWith($manager, 'GET', $path, $both, $service), "$service: a manager, another store too");
+            $this->assertFalse($this->allowsWith($plain, 'GET', $path, $own, $service), "$service: no role at all");
+
+            $specialist = User::factory()->create();
+            $specialist->assignRole($role);
+            $this->assertTrue($this->allowsWith($specialist, 'GET', $path, $both, $service), "$service: $role, every store");
+
+            // ... and no other layer: the role opens its own feed only.
+            foreach ($feeds as $other => [$otherPath, $otherRole]) {
+                if ($otherRole !== $role) {
+                    $this->assertFalse($this->allowsWith($specialist, 'GET', $otherPath, $own, $other), "$role must not see $other");
+                }
+            }
+
+            // Given for a store only, the role is that store's.
+            $atA = $this->userWithStoreRole($role, $this->storeA);
+            $this->assertFalse($this->allowsWith($atA, 'GET', $path, $both, $service), "$service: $role for store A only");
+        }
+
+        // Announcements are everyone's.
+        $this->assertTrue($this->allowsWith($plain, 'GET', '/announcements/calendar/feed', $both, 'Notifications'));
+    }
+
     public function test_global_dough_and_sauce_specialist_passes_scoped_dough_routes(): void
     {
         $specialist = User::factory()->create();

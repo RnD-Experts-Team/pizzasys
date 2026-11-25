@@ -17,7 +17,10 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
     {
         return [
             // ── Camera audits (the dashboard sends the store as X-Store-Id) ──
-            ['GET', '/camera-forms', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            // Unified calendar feed (cleaning, dough): store staff their own stores; the
+            // cleaning / dough / QA specialists, holding their role globally, every store.
+            ['GET', '/cleaning/calendar/feed', 'scoped', ['reports view', 'cleaning specialist', 'dough and sauce', 'qa audit'], 'sources' => ['query' => ['stores']], 'roles' => ['Cleaning Specialist', 'Dough and Sauce', 'QA Manager', 'QA Auditor']],
+            ['GET', '/camera-forms', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
             ['POST', '/camera-forms', 'scoped', ['qa audit'], 'allows_empty' => true],
             ['GET', '/camera-forms/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
             // The update route is POST (multipart), not PUT/PATCH.
