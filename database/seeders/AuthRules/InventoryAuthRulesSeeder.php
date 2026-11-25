@@ -28,8 +28,8 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
             ['DELETE', '/inventory/units/*', 'none', ['inventory handling']],
 
             // ── Items ────────────────────────────────────────────────────────
-            ['GET', '/inventory/items', 'scoped', ['inventory handling'], 'allows_empty' => true],
-            ['GET', '/inventory/items/*', 'scoped', ['inventory handling'], 'allows_empty' => true],
+            ['GET', '/inventory/items', 'scoped', ['inventory handling'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/inventory/items/*', 'scoped', ['inventory handling'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
             ['POST', '/inventory/items', 'none', ['inventory handling']],
             ['PUT', '/inventory/items/*', 'none', ['inventory handling']],
             ['PATCH', '/inventory/items/*/active', 'none', ['inventory handling']],
@@ -37,22 +37,22 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
 
             // ── Count links and entries ──────────────────────────────────────
             ['POST', '/inventory/links', 'scoped', ['inventory handling']],
-            ['GET', '/inventory/links/*', 'scoped', ['inventory handling'], 'allows_empty' => true],
-            ['GET', '/inventory/stores/*/links', 'scoped', ['inventory handling']],
-            ['GET', '/inventory/stores/*/entries', 'scoped', ['inventory handling']],
-            ['GET', '/inventory/entries/*', 'scoped', ['inventory handling'], 'allows_empty' => true],
-            ['GET', '/inventory/entries/*/history', 'none', ['inventory handling']],
+            ['GET', '/inventory/links/*', 'scoped', ['inventory handling'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/inventory/stores/*/links', 'scoped', ['inventory handling'], 'roles' => ['Department Viewer']],
+            ['GET', '/inventory/stores/*/entries', 'scoped', ['inventory handling'], 'roles' => ['Department Viewer']],
+            ['GET', '/inventory/entries/*', 'scoped', ['inventory handling'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/inventory/entries/*/history', 'none', ['inventory handling'], 'roles' => ['Department Viewer']],
             ['PATCH', '/inventory/entry-items/*', 'scoped', ['inventory handling'], 'allows_empty' => true],
 
             // ── Dough & sauce counts (b-dashboard-pizza/docs/DOUGH-SAUCE-ACCESS.md)
             // Only `dough and sauce` (workers per store, head by role), as on QA and Data.
-            ['GET', '/inventory/stores/*/counts', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce']],
+            ['GET', '/inventory/stores/*/counts', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce', 'Department Viewer']],
             // Every active store in one call: the specialist's weekly grid. The doc
             // suggests all_stores, but that mode also demands a store-role row at
             // every store, which a global specialist does not have. A global check
             // gives the intended result: the head passes, workers get 403 and use
             // the per-store route above for their own stores.
-            ['GET', '/inventory/counts', 'none', ['dough and sauce']],
+            ['GET', '/inventory/counts', 'none', ['dough and sauce'], 'roles' => ['Department Viewer']],
 
             // ── Report builder datasets (same contract in every service) ─────
             // The catalog is code, identical for everyone; each dataset query takes
@@ -62,8 +62,8 @@ class InventoryAuthRulesSeeder extends AuthRuleSeeder
             // Counts are the Dough & Sauce counts: the same permission and role as
             // GET /inventory/stores/*/counts.
             ['GET', '/report-datasets', 'none'],
-            ['POST', '/report-datasets/inventory.entries/query', 'scoped', ['inventory handling'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/inventory.counts/query', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/inventory.entries/query', 'scoped', ['inventory handling'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
+            ['POST', '/report-datasets/inventory.counts/query', 'scoped', ['dough and sauce'], 'roles' => ['Dough and Sauce', 'Department Viewer'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
         ];
     }
 }

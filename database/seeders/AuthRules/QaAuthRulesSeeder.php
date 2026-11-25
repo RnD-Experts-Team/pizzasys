@@ -22,28 +22,28 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/cleaning/calendar/feed', 'scoped', ['reports view', 'cleaning specialist', 'dough and sauce', 'qa audit'], 'sources' => ['query' => ['stores']], 'roles' => ['Cleaning Specialist', 'Dough and Sauce', 'QA Manager', 'QA Auditor']],
             ['GET', '/camera-forms', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
             ['POST', '/camera-forms', 'scoped', ['qa audit'], 'allows_empty' => true],
-            ['GET', '/camera-forms/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
+            ['GET', '/camera-forms/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
             // The update route is POST (multipart), not PUT/PATCH.
             ['POST', '/camera-forms/*', 'scoped', ['qa audit'], 'allows_empty' => true],
             ['DELETE', '/camera-forms/*', 'scoped', ['qa audit'], 'allows_empty' => true],
-            ['GET', '/camera-reports', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/camera-reports/export', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/camera-reports/exportExcel', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/camera-reports/exportImages', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/audits', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/audits/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true],
-            ['GET', '/audits/ratings-summary/**', 'scoped', ['reports view', 'qa audit']],
+            ['GET', '/camera-reports', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/camera-reports/export', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/camera-reports/exportExcel', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/camera-reports/exportImages', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/audits', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/audits/*', 'scoped', ['qa audit', 'reports view'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/audits/ratings-summary/**', 'scoped', ['reports view', 'qa audit'], 'roles' => ['Department Viewer']],
 
             // ── Report builder datasets (each has its own literal route) ─────
             // The catalog is code, the same for everyone; each dataset reuses the
             // permissions of the list endpoint that already shows the same data.
             // The body's `stores` are store codes; an empty list is head office.
             ['GET', '/report-datasets', 'none'],
-            ['POST', '/report-datasets/audit.cleaning/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/audit.evaluations/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/audit.cleaning/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
+            ['POST', '/report-datasets/audit.evaluations/query', 'scoped', ['cleaning specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
 
             // ── QA catalog: entities and categories ──────────────────────────
-            ['GET', '/entities', 'none', ['qa audit', 'qa admin']],
+            ['GET', '/entities', 'none', ['qa audit', 'qa admin'], 'roles' => ['Department Viewer']],
             ['POST', '/entities', 'none', ['qa admin']],
             ['PUT', '/entities/*', 'none', ['qa admin']],
             ['PATCH', '/entities/*', 'none', ['qa admin']],
@@ -54,12 +54,12 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
             ['DELETE', '/categories/*', 'none', ['qa admin']],
 
             // ── Custom reports (QA admins only) ──────────────────────────────
-            ['GET', '/custom-reports', 'none', ['qa admin']],
+            ['GET', '/custom-reports', 'none', ['qa admin'], 'roles' => ['Department Viewer']],
             // Creating, replacing and deleting custom reports are blocked for everyone (owner,
             // 2026-11-07): `manage custom reports` is held by no role. A rule switched off would
             // OPEN the route instead (allow_if_no_rule). PATCH and the reads stay with qa admin.
             ['POST', '/custom-reports', 'none', ['manage custom reports']],
-            ['GET', '/custom-reports/*', 'none', ['qa admin']],
+            ['GET', '/custom-reports/*', 'none', ['qa admin'], 'roles' => ['Department Viewer']],
             ['PUT', '/custom-reports/*', 'none', ['manage custom reports']],
             ['PATCH', '/custom-reports/*', 'none', ['qa admin']],
             ['DELETE', '/custom-reports/*', 'none', ['manage custom reports']],
@@ -94,8 +94,8 @@ class QaAuthRulesSeeder extends AuthRuleSeeder
             ['GET', '/cleaning/periods', 'scoped', ['cleaning specialist'], 'allows_empty' => true],
             ['GET', '/cleaning/settings', 'none', ['cleaning specialist']],
             ['PUT', '/cleaning/settings', 'none', ['cleaning specialist']],
-            ['GET', '/cleaning/reports/data', 'none', ['cleaning specialist']],
-            ['GET', '/cleaning/reports/csv', 'none', ['cleaning specialist']],
+            ['GET', '/cleaning/reports/data', 'none', ['cleaning specialist'], 'roles' => ['Department Viewer']],
+            ['GET', '/cleaning/reports/csv', 'none', ['cleaning specialist'], 'roles' => ['Department Viewer']],
 
             // ── Dough & sauce (b-dashboard-pizza/docs/DOUGH-SAUCE-ACCESS.md) ─
             // Only `dough and sauce`: workers hold it per store, the head through the

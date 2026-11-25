@@ -103,11 +103,25 @@ class RolesAndPermissionsSeeder extends Seeder
         'Cleaning Specialist' => ['cleaning specialist'],
         'Dough and Sauce' => ['dough and sauce', 'reports view', 'data entry', 'inventory handling'],
         'Scheduling Handler' => ['view schedule', 'manage schedule', 'manage skills'],
-        // Added on the server (pizza_auth dump, 2026-11-07): the Screen Project monitoring report.
-        'Upper MGMT' => ['screens manager', 'business reports'],
         // Given to the specialists who may create calendar tasks — assign it to the
         // user directly (global), not for a store: the rule checks it globally.
         'Calendar Tasks' => ['create calendar tasks'],
+        // Schedule, workbooks and complaints as on live (pizza_auth dump, 2026-11-24).
+        'Upper MGMT' => [
+            'screens manager',
+            'business reports',
+            'view schedule',
+            'manage schedule',
+            'create workbooks',
+            'view complaints',
+        ],
+        // Created on the server (pizza_auth dump, 2026-11-24).
+        'Specialist' => ['reports view', 'screens manager', 'create workbooks', 'view complaints'],
+        // Sees, never edits: every report and analytics screen, all of Maintenance (with
+        // Sensors) and all of Inventory, at every store. Granted by name on each read rule
+        // (`roles` in the AuthRules seeders), never on a write; assign it globally, with
+        // no store rows needed. The permissions serve the dashboard's own page checks.
+        'Department Viewer' => ['business reports', 'view complaints'],
     ];
 
     public function run(): void

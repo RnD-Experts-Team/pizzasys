@@ -36,14 +36,14 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             // pay dataset has its own rule and the pay-edit permissions (hiring
             // admin and specialist), not the wider roster ones.
             ['GET', '/report-datasets', 'none'],
-            ['POST', '/report-datasets/hiring.employees/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/hiring.status_changes/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.employees/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
+            ['POST', '/report-datasets/hiring.status_changes/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
             ['POST', '/report-datasets/hiring.pay/query', 'scoped', ['hiring admin', 'hiring specialist'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
             // Each of these takes the permissions of the endpoint that shows the same data.
             ['POST', '/report-datasets/hiring.metrics/query', 'scoped', ['import data'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/hiring.hiring_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/hiring.separation_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
-            ['POST', '/report-datasets/hiring.shirt_milestones/query', 'scoped', ['reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']]],
+            ['POST', '/report-datasets/hiring.hiring_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
+            ['POST', '/report-datasets/hiring.separation_requests/query', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
+            ['POST', '/report-datasets/hiring.shirt_milestones/query', 'scoped', ['reports view', 'employee obsession'], 'allows_empty' => true, 'sources' => ['body' => ['stores']], 'roles' => ['Department Viewer']],
 
             // ── Hiring and separation requests ───────────────────────────────
             ['GET', '/v1/requests', 'scoped', ['hiring specialist', 'hiring admin', 'reports view', 'employee obsession'], 'allows_empty' => true],
@@ -54,15 +54,15 @@ class HiringAuthRulesSeeder extends AuthRuleSeeder
             ['POST', '/v1/stores/*/separation-requests/*/decision', 'scoped', ['hiring admin', 'hiring specialist']],
 
             // ── Manager dashboard and labor reports ──────────────────────────
-            ['GET', '/v1/stores/*/manager-dashboard/*', 'scoped', ['reports view']],
-            ['GET', '/v1/stores/*/labor/*', 'scoped', ['reports view']],
+            ['GET', '/v1/stores/*/manager-dashboard/*', 'scoped', ['reports view'], 'roles' => ['Department Viewer']],
+            ['GET', '/v1/stores/*/labor/*', 'scoped', ['reports view'], 'roles' => ['Department Viewer']],
             // Business Reports: the labor report for stores[] over a range (each store checked; none → global).
-            ['GET', '/v1/reports/labor', 'scoped', ['business reports'], 'allows_empty' => true],
+            ['GET', '/v1/reports/labor', 'scoped', ['business reports'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
             // Payroll per store-week for Business Reports' final labor.
-            ['GET', '/v1/reports/payroll-weeks', 'scoped', ['business reports'], 'allows_empty' => true],
-            ['GET', '/v1/reports/*/*', 'scoped', ['reports view']],
-            ['GET', '/average-hourly-pay/*/*', 'scoped', ['reports view']],
-            ['GET', '/high-hours-employees/*/*', 'scoped', ['reports view']],
+            ['GET', '/v1/reports/payroll-weeks', 'scoped', ['business reports'], 'allows_empty' => true, 'roles' => ['Department Viewer']],
+            ['GET', '/v1/reports/*/*', 'scoped', ['reports view'], 'roles' => ['Department Viewer']],
+            ['GET', '/average-hourly-pay/*/*', 'scoped', ['reports view'], 'roles' => ['Department Viewer']],
+            ['GET', '/high-hours-employees/*/*', 'scoped', ['reports view'], 'roles' => ['Department Viewer']],
 
             // ── Employee metrics import ──────────────────────────────────────
             ['GET', '/v1/employee-metrics', 'none', ['import data']],
